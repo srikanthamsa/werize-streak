@@ -576,9 +576,9 @@ function TodayView(data: DashboardData) {
             </p>
           </div>
           <div className="rounded-[20px] bg-[#17171A] px-4 py-3">
-            <p className="text-sm font-semibold text-white">Clear to go</p>
+            <p className="text-sm font-semibold text-white">Remaining</p>
             <p className="mt-1 text-sm text-[#A1A1AA]">
-              The actual time where today fully clears against the normal daily target.
+              The exact number of hours and minutes left to clear the daily target.
             </p>
           </div>
         </div>
