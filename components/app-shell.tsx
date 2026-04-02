@@ -17,7 +17,7 @@ import {
 import type { DashboardData } from "@/lib/dashboard-data";
 import type { LeaderboardEntry } from "@/lib/types";
 
-type TabId = "today" | "insights" | "leaderboard" | "profile";
+type TabId = "today" | "insights" | "leaderboard" | "profile" | "notifications";
 
 type TabDefinition = {
   id: TabId;
@@ -28,10 +28,10 @@ type TabDefinition = {
 const tabs: TabDefinition[] = [
   {
     id: "today",
-    label: "Pulse",
+    label: "Home",
     icon: (
       <path
-        d="M12 7v5l3 3m6-3a9 9 0 1 1-18 0a9 9 0 0 1 18 0Z"
+        d="M3 9l9-7l9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
         stroke="currentColor"
         strokeWidth="1.8"
         fill="none"
@@ -79,6 +79,20 @@ const tabs: TabDefinition[] = [
         fill="none"
         strokeLinecap="round"
         strokeLinejoin="round"
+      />
+    ),
+  },
+  {
+    id: "notifications",
+    label: "Notifications",
+    icon: (
+      <path 
+        d="M15 17h5l-1.4-5.2a3 3 0 0 0-1-6.8a5.5 5.5 0 0 0-11.2 0a3 3 0 0 0-1 6.8L4 17h5m6 0a3 3 0 0 1-6 0" 
+        stroke="currentColor" 
+        strokeWidth="1.8" 
+        fill="none" 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
       />
     ),
   },
@@ -652,15 +666,49 @@ function InsightsView({ monthEntries, monthSummary }: Pick<DashboardData, "month
 
   const validEntries = [...monthEntries]
     .filter(e => e.swipes.length >= 2)
-    .map(e => ({ date: e.date, minutes: calculateWorkedMinutes(e.swipes) }))
+    .map(e => ({ date: e.date, minutes: calculateWorkedMinutes(e.swipes), swipes: e.swipes }))
     .sort((a, b) => b.minutes - a.minutes);
     
-  const longest = validEntries[0];
-  const shortest = validEntries[validEntries.length - 1];
-
+  // Burnout Warning
   const sortedByDateDesc = [...validEntries].sort((a, b) => b.date.localeCompare(a.date));
   const lastDays = sortedByDateDesc.slice(0, 3);
   const isBurningOut = lastDays.length === 3 && lastDays.every(d => d.minutes >= 10 * 60);
+
+  // Late Arrival Tax
+  const parseTimeValue = (swipe: string) => {
+    const d = new Date(swipe);
+    return d.getHours() * 60 + d.getMinutes(); 
+  };
+  const entriesWithTime = validEntries.map(e => ({
+    ...e,
+    arrivalMins: parseTimeValue(e.swipes[0])
+  })).sort((a,b) => a.arrivalMins - b.arrivalMins);
+
+  const medianArrival = entriesWithTime[Math.floor(entriesWithTime.length / 2)]?.arrivalMins ?? 600;
+  const lateEntries = entriesWithTime.filter(e => e.arrivalMins > medianArrival + 30);
+  const normalEntries = entriesWithTime.filter(e => e.arrivalMins <= medianArrival + 30);
+
+  const normalPace = normalEntries.length ? normalEntries.reduce((sum, e) => sum + e.minutes, 0) / normalEntries.length : DAILY_TARGET_MINUTES;
+  const latePace = lateEntries.length ? lateEntries.reduce((sum, e) => sum + e.minutes, 0) / lateEntries.length : normalPace;
+  const lateTax = latePace - normalPace;
+
+  // Best/worst days
+  const weekdayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const weekdayStats = validEntries.reduce((acc, e) => {
+    const d = new Date(e.date).getDay();
+    if(!acc[d]) acc[d] = { count: 0, total: 0 };
+    acc[d].count++;
+    acc[d].total += e.minutes;
+    return acc;
+  }, {} as Record<number, {count: number, total: number}>);
+
+  const weekdayAverages = Object.entries(weekdayStats).map(([day, stats]) => ({
+    day: weekdayNames[Number(day)],
+    avg: stats.total / stats.count
+  })).sort((a, b) => b.avg - a.avg);
+
+  const bestDay = weekdayAverages.length ? weekdayAverages[0] : null;
+  const worstDay = weekdayAverages.length > 1 ? weekdayAverages[weekdayAverages.length - 1] : null;
 
   return (
     <div className="grid w-full max-w-6xl grid-cols-12 gap-6">
@@ -688,44 +736,101 @@ function InsightsView({ monthEntries, monthSummary }: Pick<DashboardData, "month
         )}
       </GlowCard>
 
-      <GlowCard className="col-span-12 p-8 lg:col-span-5">
-        <p className="magic-tech-label text-xs text-[#A1A1AA]">MONTH HEATMAP</p>
-        <div className="mt-6 grid grid-cols-7 gap-2">
-          {monthEntries.map((e) => {
-             const worked = calculateWorkedMinutes(e.swipes);
-             let color = "bg-[#17171A]";
-             if (worked >= DAILY_TARGET_MINUTES) color = "bg-[#39FF14]";
-             else if (worked >= DAILY_TARGET_MINUTES - 60) color = "bg-[#7CFF61]";
-             else if (worked > 0) color = "bg-[#F87171]";
-             
-             return (
-               <div key={e.date} className={`aspect-square rounded-[8px] ${color} opacity-80 transition hover:opacity-100 flex items-center justify-center`} title={e.date}>
-                  {worked > 0 ? <span className="text-[10px] text-zinc-900 font-bold opacity-0 hover:opacity-100">{Math.floor(worked/60)}h</span> : null}
-               </div>
-             )
-          })}
+      <GlowCard className="col-span-12 p-8 lg:col-span-5 flex flex-col justify-between">
+        <p className="magic-tech-label text-xs text-[#A1A1AA]">RECOVERY PATHS</p>
+        <div className="mt-6 flex flex-col gap-3">
+          {(!isAhead && daysLeft > 1) ? (
+            <>
+              <div className="flex justify-between items-center bg-[#17171A] p-4 rounded-xl">
+                <div>
+                  <p className="text-sm font-semibold text-white">Aggressive</p>
+                  <p className="text-xs text-[#A1A1AA]">Fix your deficit in 2 days</p>
+                </div>
+                <p className="text-lg font-semibold text-[#FBBF24]">+{formatMinutes(Math.ceil(Math.abs(monthSummary.balanceMinutes) / 2))}/day</p>
+              </div>
+              {daysLeft > 2 && (
+                <div className="flex justify-between items-center bg-[#17171A] p-4 rounded-xl">
+                  <div>
+                    <p className="text-sm font-semibold text-white">Balanced</p>
+                    <p className="text-xs text-[#A1A1AA]">Spread it over 5 days</p>
+                  </div>
+                  <p className="text-lg font-semibold text-[#FBBF24]">+{formatMinutes(Math.ceil(Math.abs(monthSummary.balanceMinutes) / Math.min(5, daysLeft)))}/day</p>
+                </div>
+              )}
+              {daysLeft > 5 && (
+                <div className="flex justify-between items-center bg-[#17171A] p-4 rounded-xl">
+                  <div>
+                    <p className="text-sm font-semibold text-white">Slow</p>
+                    <p className="text-xs text-[#A1A1AA]">Coast until month end</p>
+                  </div>
+                  <p className="text-lg font-semibold text-[#FBBF24]">+{formatMinutes(Math.ceil(Math.abs(monthSummary.balanceMinutes) / daysLeft))}/day</p>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="bg-[#17171A] p-4 rounded-xl text-sm text-[#A1A1AA]">
+              {isAhead ? "You have a surplus. No recovery paths needed." : "It's the last day of the month! No time to space out recovery."}
+            </div>
+          )}
         </div>
       </GlowCard>
 
-      <GlowCard className="col-span-12 p-8">
-        <p className="magic-tech-label text-xs text-[#A1A1AA]">EXTREMES</p>
+      <GlowCard className="col-span-12 p-8 lg:col-span-12">
+        <p className="magic-tech-label text-xs text-[#A1A1AA]">BEHAVIOR PATTERNS</p>
         <div className="mt-6 grid gap-4 md:grid-cols-2">
           <div className="rounded-[22px] bg-[#17171A] p-5">
-            <p className="text-sm text-[#A1A1AA]">Longest Shift This Month</p>
-            <p className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-white">
-              {longest ? formatMinutes(longest.minutes) : "--"}
-            </p>
-            <p className="mt-2 text-sm text-[#71717A]">{longest ? toShortDate(longest.date) : "No data"}</p>
+            <p className="text-sm text-[#A1A1AA]">Best / Worst Days</p>
+            {bestDay && worstDay ? (
+              <div className="mt-4 flex flex-col gap-3">
+                 <div className="flex items-center justify-between">
+                   <p className="text-base text-white">🟢 {bestDay.day}s</p>
+                   <p className="text-sm text-[#A1A1AA]">Avg {formatMinutes(Math.round(bestDay.avg))}</p>
+                 </div>
+                 <div className="flex items-center justify-between">
+                   <p className="text-base text-white">🔴 {worstDay.day}s</p>
+                   <p className="text-sm text-[#A1A1AA]">Avg {formatMinutes(Math.round(worstDay.avg))}</p>
+                 </div>
+              </div>
+            ) : (
+              <div className="mt-4 text-sm text-[#A1A1AA]">Not enough data to calculate best/worst days yet.</div>
+            )}
           </div>
+
           <div className="rounded-[22px] bg-[#17171A] p-5">
-            <p className="text-sm text-[#A1A1AA]">Shortest Shift This Month</p>
-            <p className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-white">
-              {shortest ? formatMinutes(shortest.minutes) : "--"}
-            </p>
-            <p className="mt-2 text-sm text-[#71717A]">{shortest ? toShortDate(shortest.date) : "No data"}</p>
+            <p className="text-sm text-[#A1A1AA]">The Late Arrival Tax</p>
+            {lateEntries.length > 0 ? (
+              <div className="mt-4">
+                <p className="text-xl font-semibold tracking-[-0.04em] text-white">
+                  {lateTax > 30 ? `Cost: +${formatMinutes(Math.round(lateTax))}` : lateTax < -30 ? `Cut: -${formatMinutes(Math.abs(Math.round(lateTax)))}` : `No heavy tax`}
+                </p>
+                <p className="mt-2 text-sm text-[#A1A1AA] leading-relaxed">
+                  {lateTax > 30 
+                    ? `When you arrive >30m after your normal time, you end up staying ${formatMinutes(Math.round(lateTax))} longer on average to compensate.`
+                    : lateTax < -30
+                    ? `When you arrive >30m late, you tend to cut your day short by ${formatMinutes(Math.abs(Math.round(lateTax)))}.`
+                    : `Your arrival time doesn't heavily impact your overall hours worked.`}
+                </p>
+              </div>
+            ) : (
+              <div className="mt-4 text-sm text-[#A1A1AA]">You haven't had late arrivals this month to analyze perfectly. Keep it up!</div>
+            )}
           </div>
         </div>
       </GlowCard>
+    </div>
+  );
+}
+
+function NotificationsView() {
+  return (
+    <div className="flex w-full max-w-6xl flex-col items-center justify-center py-20 text-center">
+      <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full border border-[#2d2d33] bg-[#17171A]">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-[#A1A1AA]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M15 17h5l-1.4-5.2a3 3 0 0 0-1-6.8a5.5 5.5 0 0 0-11.2 0a3 3 0 0 0-1 6.8L4 17h5m6 0a3 3 0 0 1-6 0" />
+        </svg>
+      </div>
+      <h2 className="text-2xl font-semibold tracking-[-0.04em] text-white">All caught up!</h2>
+      <p className="mt-2 text-[#A1A1AA]">When someone breaks your leaderboard rank or status updates happen, they'll show here.</p>
     </div>
   );
 }
@@ -1202,6 +1307,7 @@ export function AppShell(data: DashboardData) {
             profile={data.profile}
           />
         ) : null}
+        {currentTab === "notifications" ? <NotificationsView /> : null}
       </div>
 
       <BottomNav currentTab={currentTab} onSelect={setCurrentTab} />
