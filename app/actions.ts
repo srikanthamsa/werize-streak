@@ -172,7 +172,17 @@ export async function runAttendanceSync(profileId: string): Promise<SyncState> {
       synced_at: new Date().toISOString(),
     }));
 
+    // Clean up stale data from previous months before upserting
+    const now = new Date();
+    const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+    await supabase
+      .from("attendance_logs")
+      .delete()
+      .eq("user_id", profileId)
+      .lt("attendance_date", monthStart);
+
     const { error: upsertError } = await supabase
+
       .from("attendance_logs")
       .upsert(upsertPayload, {
         onConflict: "user_id,attendance_date",
