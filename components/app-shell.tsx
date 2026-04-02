@@ -366,7 +366,7 @@ function TodayView(data: DashboardData) {
         </div>
 
         <div className={`mt-6 inline-flex items-center gap-3 rounded-full px-4 py-3 text-sm ${hasStartedToday ? status.tone : "bg-[#17171A] text-[#A1A1AA]"}`}>
-          <span className={`h-2.5 w-2.5 rounded-full shadow-[0_0_18px_currentColor] ${hasStartedToday ? (status.label === "Behind" ? "bg-[#F87171]" : "bg-[#4ADE80]") : "bg-[#39FF14]"}`} />
+          <span className={`h-2.5 w-2.5 rounded-full ${hasStartedToday ? (status.label === "Behind" ? "bg-[#F87171] shadow-[0_0_18px_#F87171]" : "bg-[#4ADE80] shadow-[0_0_18px_#4ADE80]") : "bg-[#71717A]"}`} />
           <span>{hasStartedToday ? statusCopy : "Day not started yet."}</span>
         </div>
 
@@ -474,7 +474,7 @@ function TodayView(data: DashboardData) {
         <div className="flex flex-col gap-5 lg:col-span-4 lg:gap-6">
           <GlowCard className="magic-panel-glow p-6">
             <p className="magic-tech-label text-xs text-[#A1A1AA]">TIME BANK</p>
-            <h2 className="mt-2 text-4xl font-semibold tracking-[-0.04em] text-[#4ADE80]">
+            <h2 className={`mt-2 text-4xl font-semibold tracking-[-0.04em] ${data.monthSummary.balanceMinutes >= 0 ? "text-[#4ADE80]" : "text-[#F87171]"}`}>
               {data.monthSummary.balanceMinutes >= 0 ? "+" : "-"}
               {formatMinutes(Math.abs(data.monthSummary.balanceMinutes))}
             </h2>
@@ -888,18 +888,55 @@ function ProfileView({
         {monthEntries.length ? (
           <div className="mt-6 space-y-3">
             {monthEntries.slice(0, 8).map((entry) => (
-              <button
-                key={entry.date}
-                type="button"
-                onClick={() => setSelectedDay((current) => current === entry.date ? null : entry.date)}
-                className="flex w-full items-center justify-between rounded-[22px] bg-[#17171A] px-4 py-4 text-left transition hover:bg-[#1b1b1f]"
-              >
-                <div>
-                  <p className="font-semibold tracking-[-0.02em] text-white">{toShortDate(entry.date)}</p>
-                  <p className="mt-1 text-sm text-[#A1A1AA]">{entry.swipes.length} swipes captured</p>
-                </div>
-                <p className="text-sm font-semibold text-white">{formatMinutes(calculateWorkedMinutes(entry.swipes))}</p>
-              </button>
+              <>
+                <button
+                  key={entry.date}
+                  type="button"
+                  onClick={() => setSelectedDay((current) => current === entry.date ? null : entry.date)}
+                  className={`flex w-full items-center justify-between rounded-[22px] px-4 py-4 text-left transition hover:bg-[#1b1b1f] ${
+                    selectedDay === entry.date ? "bg-[#1b1b1f]" : "bg-[#17171A]"
+                  }`}
+                >
+                  <div>
+                    <p className="font-semibold tracking-[-0.02em] text-white">{toShortDate(entry.date)}</p>
+                    <p className="mt-1 text-sm text-[#A1A1AA]">{entry.swipes.length} swipes captured</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <p className="text-sm font-semibold text-white">{formatMinutes(calculateWorkedMinutes(entry.swipes))}</p>
+                    <svg viewBox="0 0 24 24" className={`size-4 text-[#71717A] transition-transform duration-200 ${selectedDay === entry.date ? "rotate-180" : ""}`}>
+                      <path fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
+                    </svg>
+                  </div>
+                </button>
+                {selectedDay === entry.date ? (
+                  <div className="-mt-1 rounded-b-[22px] rounded-t-[8px] bg-[#141416] px-5 py-5">
+                    <p className="magic-tech-label text-xs text-[#A1A1AA]">DAY DETAIL · {toShortDate(entry.date)}</p>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.16em] text-[#71717A]">First in</p>
+                        <p className="mt-2 text-lg font-semibold text-white">{entry.swipes[0] ? toClockLabel(entry.swipes[0]) : "--"}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.16em] text-[#71717A]">Last out</p>
+                        <p className="mt-2 text-lg font-semibold text-white">{entry.swipes.at(-1) ? toClockLabel(entry.swipes.at(-1) as string) : "--"}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.16em] text-[#71717A]">Total</p>
+                        <p className="mt-2 text-lg font-semibold text-white">{formatMinutes(calculateWorkedMinutes(entry.swipes))}</p>
+                      </div>
+                    </div>
+                    <p className="mt-4 text-sm text-[#A1A1AA]">
+                      {entry.swipes.length <= 1
+                        ? "Thin day. This one probably needs attention."
+                        : calculateWorkedMinutes(entry.swipes) >= DAILY_TARGET_MINUTES
+                        ? "Clean day. You cleared the line."
+                        : calculateWorkedMinutes(entry.swipes) >= HALF_DAY_MINUTES
+                        ? "Half-day safe, but not a full clear."
+                        : "Below half-day floor. This one was expensive."}
+                    </p>
+                  </div>
+                ) : null}
+              </>
             ))}
           </div>
         ) : (
@@ -910,26 +947,7 @@ function ProfileView({
             </p>
           </div>
         )}
-        {selectedEntry ? (
-          <div className="mt-5 rounded-[24px] bg-[#17171A] p-5">
-            <p className="magic-tech-label text-xs text-[#A1A1AA]">DAY DETAIL · {toShortDate(selectedEntry.date)}</p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-3">
-              <div>
-                <p className="text-xs uppercase tracking-[0.16em] text-[#71717A]">First in</p>
-                <p className="mt-2 text-lg font-semibold text-white">{selectedFirstIn}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-[0.16em] text-[#71717A]">Last out</p>
-                <p className="mt-2 text-lg font-semibold text-white">{selectedLastOut}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-[0.16em] text-[#71717A]">Total</p>
-                <p className="mt-2 text-lg font-semibold text-white">{formatMinutes(selectedWorkedMinutes)}</p>
-              </div>
-            </div>
-            <p className="mt-4 text-sm text-[#A1A1AA]">{selectedFunFact}</p>
-          </div>
-        ) : null}
+
       </GlowCard>
     </div>
   );
@@ -945,7 +963,9 @@ function BottomNav({
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50">
       <div className="flex justify-center px-6 pb-[calc(env(safe-area-inset-bottom)+18px)]">
-        <nav className="magic-bottom-nav pointer-events-auto flex items-center gap-2 rounded-[26px] p-2">
+        {/* Glow halo behind the nav pill */}
+        <div className="pointer-events-none absolute bottom-0 left-1/2 h-28 w-72 -translate-x-1/2 rounded-full bg-[rgba(57,255,20,0.13)] blur-[40px]" />
+        <nav className="magic-bottom-nav pointer-events-auto relative flex items-center gap-2 rounded-[26px] p-2 shadow-[0_0_40px_rgba(57,255,20,0.15)]">
           {tabs.map((tab) => {
             const active = tab.id === currentTab;
 

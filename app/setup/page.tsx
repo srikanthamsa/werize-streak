@@ -1,6 +1,7 @@
 import { OnboardingForm } from "@/components/onboarding-form";
 import { getDashboardData } from "@/lib/dashboard-data";
 import { getAuthenticatedUser } from "@/lib/supabase/auth";
+import { redirect } from "next/navigation";
 
 export default async function SetupPage({
   searchParams,
@@ -11,6 +12,11 @@ export default async function SetupPage({
   const data = await getDashboardData();
   const params = (await searchParams) ?? {};
   const authError = typeof params.error === "string" ? params.error : undefined;
+
+  // Existing live users who land here (e.g. right after Google OAuth redirect) go straight to the dashboard
+  if (authUser && data.syncUserId && data.isLive && !authError) {
+    redirect("/");
+  }
 
   return (
     <OnboardingForm
