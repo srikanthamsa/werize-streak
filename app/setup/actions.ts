@@ -53,7 +53,7 @@ export async function saveCredentialsAction(
       p_full_name: fullName,
       p_team: team,
       p_role: role || null,
-      p_greythr_user_id: "",
+      p_greythr_user_id: null,
       p_greythr_username: greythrUsername,
       p_greythr_password: greythrPassword,
       p_encryption_key: encryptionKey,
