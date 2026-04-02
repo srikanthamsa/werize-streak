@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(supabase --version)",
+      "Bash(supabase functions:*)",
+      "Bash(curl -s -X POST \"https://ndgbypmmquqnohblsiin.supabase.co/functions/v1/sync-greythr\" -H \"Content-Type: application/json\" -H \"Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kZ2J5cG1tcXVxbm9oYmxzaWluIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTAxNzg1MCwiZXhwIjoyMDkwNTkzODUwfQ.M5zsdH9Bh44muz3yCfXk-p022UHbfduVgd7ZeUYYs40\" -d '{\"\"\"\"userName\"\"\"\":\"\"\"\"03420\"\"\"\",\"\"\"\"password\"\"\"\":\"\"\"\"SrikantPA24@\"\"\"\",\"\"\"\"greythrUserId\"\"\"\":\"\"\"\"3527\"\"\"\"}')",
+      "Bash(python3 -m json.tool)",
+      "Bash(supabase --help)",
+      "Bash(curl -s -X POST \"https://ndgbypmmquqnohblsiin.supabase.co/functions/v1/sync-greythr\" -H \"Content-Type: application/json\" -H \"Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kZ2J5cG1tcXVxbm9oYmxzaWluIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTAxNzg1MCwiZXhwIjoyMDkwNTkzODUwfQ.M5zsdH9Bh44muz3yCfXk-p022UHbfduVgd7ZeUYYs40\" -d '{\"\"userName\"\":\"\"03420\"\",\"\"password\"\":\"\"SrikantPA24@\"\",\"\"greythrUserId\"\":\"\"3527\"\"}')",
+      "Bash(curl -s \"https://wortgage.greythr.com/uas/v1/session-config\" -H \"Accept: application/json\" -H \"User-Agent: Mozilla/5.0\")",
+      "Bash(curl -s https://wortgage.greythr.com/uas/v1/session-config -H 'Accept: application/json' -H 'User-Agent: Mozilla/5.0')",
+      "Bash(curl -s \"https://goth-coral.greythr.com/.well-known/jwks.json\")",
+      "mcp__Claude_Preview__preview_start"
+    ]
+  }
+}
