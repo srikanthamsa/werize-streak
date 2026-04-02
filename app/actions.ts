@@ -44,7 +44,7 @@ function toIsoList(source: unknown) {
     .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
 }
 
-function extractAttendanceRows(payload: EdgeFunctionResponse["swipeResponse"]) {
+function extractAttendanceRows(payload: any) {
   if (Array.isArray(payload?.swipe)) {
     const grouped = new Map<string, string[]>();
 
@@ -67,9 +67,9 @@ function extractAttendanceRows(payload: EdgeFunctionResponse["swipeResponse"]) {
     })).filter((row) => row.swipe_times.length > 0);
   }
 
-  const candidates = payload?.employeeSwipes ?? payload?.swipes ?? [];
+  const candidates = Array.isArray(payload) ? payload : (payload?.employeeSwipes ?? payload?.swipes ?? []);
 
-  return candidates.flatMap((row) => {
+  return candidates.flatMap((row: any) => {
     const attendanceDate = row.attendanceDate ?? row.date;
     const swipeTimes = toIsoList(row.swipes ?? row.swipeTimes ?? row.systemSwipes ?? []);
 
@@ -153,10 +153,10 @@ export async function runAttendanceSync(profileId: string): Promise<SyncState> {
 
     const attendanceRows = extractAttendanceRows(edgePayload.swipeResponse);
     if (!attendanceRows.length) {
-      return { ok: false, message: "Sync succeeded but returned no swipe rows." };
+      return { ok: true, message: "Sync succeeded but returned no swipe rows for this boundary. Check dashboard." };
     }
 
-    const upsertPayload = attendanceRows.map((row) => ({
+    const upsertPayload = attendanceRows.map((row: { attendance_date: string; swipe_times: string[] }) => ({
       user_id: profileId,
       attendance_date: row.attendance_date,
       swipe_times: row.swipe_times,
