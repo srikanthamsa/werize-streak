@@ -17,7 +17,7 @@ import {
 import type { DashboardData } from "@/lib/dashboard-data";
 import type { LeaderboardEntry } from "@/lib/types";
 
-type TabId = "today" | "plan" | "leaderboard" | "profile";
+type TabId = "today" | "insights" | "leaderboard" | "profile";
 
 type TabDefinition = {
   id: TabId;
@@ -32,6 +32,20 @@ const tabs: TabDefinition[] = [
     icon: (
       <path
         d="M12 7v5l3 3m6-3a9 9 0 1 1-18 0a9 9 0 0 1 18 0Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    ),
+  },
+  {
+    id: "insights",
+    label: "Insights",
+    icon: (
+      <path
+        d="M3 3v18h18m-2-12l-5 5l-4-4l-5 5"
         stroke="currentColor"
         strokeWidth="1.8"
         fill="none"
@@ -632,6 +646,90 @@ function TodayView(data: DashboardData) {
 }
 
 
+function InsightsView({ monthEntries, monthSummary }: Pick<DashboardData, "monthEntries" | "monthSummary">) {
+  const daysLeft = Math.max(1, monthSummary.totalWorkingDays - monthSummary.workingDaysElapsed);
+  const isAhead = monthSummary.balanceMinutes >= 0;
+
+  const validEntries = [...monthEntries]
+    .filter(e => e.swipes.length >= 2)
+    .map(e => ({ date: e.date, minutes: calculateWorkedMinutes(e.swipes) }))
+    .sort((a, b) => b.minutes - a.minutes);
+    
+  const longest = validEntries[0];
+  const shortest = validEntries[validEntries.length - 1];
+
+  const sortedByDateDesc = [...validEntries].sort((a, b) => b.date.localeCompare(a.date));
+  const lastDays = sortedByDateDesc.slice(0, 3);
+  const isBurningOut = lastDays.length === 3 && lastDays.every(d => d.minutes >= 10 * 60);
+
+  return (
+    <div className="grid w-full max-w-6xl grid-cols-12 gap-6">
+      <GlowCard className="col-span-12 p-8 lg:col-span-7">
+        <p className="magic-tech-label text-xs text-[#A1A1AA]">THE FORECAST</p>
+        <h2 className={`mt-3 text-4xl font-semibold tracking-[-0.04em] ${isAhead ? "text-[#4ADE80]" : "text-[#F87171]"}`}>
+          {isAhead ? "Coast into Friday" : "Recovery Mode"}
+        </h2>
+        <p className="mt-3 text-[#A1A1AA]">
+          {isAhead 
+            ? `You have a surplus of ${formatMinutes(monthSummary.balanceMinutes)}. You can afford to drop your pace to ${formatMinutes(monthSummary.recommendedDailyAverageMinutes)}/day for the rest of the month.`
+            : `You are down ${formatMinutes(Math.abs(monthSummary.balanceMinutes))}. You need to average ${formatMinutes(monthSummary.recommendedDailyAverageMinutes)}/day to recover your standing by the end of the month.`
+          }
+        </p>
+        
+        {isBurningOut ? (
+          <div className="mt-6 rounded-2xl bg-[rgba(251,191,36,0.1)] p-4 border border-[rgba(251,191,36,0.2)]">
+            <p className="font-semibold text-[#FBBF24]">⚠️ Burnout Warning</p>
+            <p className="mt-1 text-sm text-[#FDE68A]">You've logged 10+ hours for consecutive days. You are far over-indexing. Take a shorter day soon.</p>
+          </div>
+        ) : (
+          <div className="mt-6 rounded-2xl bg-[#17171A] p-4 text-sm text-[#A1A1AA]">
+            Pace is stable. No burnout warnings triggered for recent activity.
+          </div>
+        )}
+      </GlowCard>
+
+      <GlowCard className="col-span-12 p-8 lg:col-span-5">
+        <p className="magic-tech-label text-xs text-[#A1A1AA]">MONTH HEATMAP</p>
+        <div className="mt-6 grid grid-cols-7 gap-2">
+          {monthEntries.map((e) => {
+             const worked = calculateWorkedMinutes(e.swipes);
+             let color = "bg-[#17171A]";
+             if (worked >= DAILY_TARGET_MINUTES) color = "bg-[#39FF14]";
+             else if (worked >= DAILY_TARGET_MINUTES - 60) color = "bg-[#7CFF61]";
+             else if (worked > 0) color = "bg-[#F87171]";
+             
+             return (
+               <div key={e.date} className={`aspect-square rounded-[8px] ${color} opacity-80 transition hover:opacity-100 flex items-center justify-center`} title={e.date}>
+                  {worked > 0 ? <span className="text-[10px] text-zinc-900 font-bold opacity-0 hover:opacity-100">{Math.floor(worked/60)}h</span> : null}
+               </div>
+             )
+          })}
+        </div>
+      </GlowCard>
+
+      <GlowCard className="col-span-12 p-8">
+        <p className="magic-tech-label text-xs text-[#A1A1AA]">EXTREMES</p>
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          <div className="rounded-[22px] bg-[#17171A] p-5">
+            <p className="text-sm text-[#A1A1AA]">Longest Shift This Month</p>
+            <p className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-white">
+              {longest ? formatMinutes(longest.minutes) : "--"}
+            </p>
+            <p className="mt-2 text-sm text-[#71717A]">{longest ? toShortDate(longest.date) : "No data"}</p>
+          </div>
+          <div className="rounded-[22px] bg-[#17171A] p-5">
+            <p className="text-sm text-[#A1A1AA]">Shortest Shift This Month</p>
+            <p className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-white">
+              {shortest ? formatMinutes(shortest.minutes) : "--"}
+            </p>
+            <p className="mt-2 text-sm text-[#71717A]">{shortest ? toShortDate(shortest.date) : "No data"}</p>
+          </div>
+        </div>
+      </GlowCard>
+    </div>
+  );
+}
+
 function deriveStanding(profileName: string, entries: LeaderboardEntry[], minutes: number) {
   const publicEntries = entries.filter((entry) => entry.public);
   if (!publicEntries.length) {
@@ -1086,6 +1184,7 @@ export function AppShell(data: DashboardData) {
         <Header monthSummary={data.monthSummary} />
 
         {currentTab === "today" ? <TodayView {...data} /> : null}
+        {currentTab === "insights" ? <InsightsView monthEntries={data.monthEntries} monthSummary={data.monthSummary} /> : null}
         {currentTab === "leaderboard" ? (
           <LeaderboardView
             profile={data.profile}
