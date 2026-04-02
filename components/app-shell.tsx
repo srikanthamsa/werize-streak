@@ -28,24 +28,10 @@ type TabDefinition = {
 const tabs: TabDefinition[] = [
   {
     id: "today",
-    label: "Today",
+    label: "Pulse",
     icon: (
       <path
         d="M12 7v5l3 3m6-3a9 9 0 1 1-18 0a9 9 0 0 1 18 0Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        fill="none"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    ),
-  },
-  {
-    id: "plan",
-    label: "Plan",
-    icon: (
-      <path
-        d="M4 8.5L12 4l8 4.5M5.5 10H18.5M7 10v7m5-7v7m5-7v7M4 19h16"
         stroke="currentColor"
         strokeWidth="1.8"
         fill="none"
@@ -303,6 +289,11 @@ function TodayView(data: DashboardData) {
     100,
     Math.round((data.monthSummary.actualMinutesToDate / Math.max(1, totalMonthlyMinutes)) * 100),
   ));
+  const progressColorClass = data.monthSummary.balanceMinutes >= 0 
+    ? "bg-[linear-gradient(90deg,#7CFF61,#39FF14,#20E70A)] shadow-[0_0_30px_rgba(57,255,20,0.24)]"
+    : data.monthSummary.balanceMinutes >= -60
+    ? "bg-[linear-gradient(90deg,#FDE68A,#FBBF24,#F59E0B)] shadow-[0_0_30px_rgba(251,191,36,0.24)]"
+    : "bg-[linear-gradient(90deg,#FCA5A5,#F87171,#EF4444)] shadow-[0_0_30px_rgba(248,113,113,0.24)]";
   const hasStartedToday = data.todayEntry.swipes.length > 0;
   const minimumViable = data.profile.firstSwipeAt
     ? new Date(new Date(data.profile.firstSwipeAt).getTime() + 4.5 * 60 * 60 * 1000).toISOString()
@@ -339,6 +330,19 @@ function TodayView(data: DashboardData) {
     : data.streak.realTimeStatus === "risk"
     ? "At risk"
     : "Break risk";
+
+  const daysLeft = Math.max(1, data.monthSummary.totalWorkingDays - data.monthSummary.workingDaysElapsed);
+  const recoveryStep = data.monthSummary.balanceMinutes < 0
+    ? Math.ceil(Math.abs(data.monthSummary.balanceMinutes) / Math.min(daysLeft, 4))
+    : 0;
+  const earlyExitAllowance = data.monthSummary.balanceMinutes > 0
+    ? Math.floor(data.monthSummary.balanceMinutes / daysLeft)
+    : 0;
+
+  const isBankPositive = data.monthSummary.balanceMinutes >= 0;
+  const timeBankBg = isBankPositive 
+    ? "bg-[rgba(57,255,20,0.03)] border border-[rgba(57,255,20,0.1)] shadow-[0_0_30px_rgba(57,255,20,0.05)_inset]" 
+    : "bg-[rgba(248,113,113,0.03)] border border-[rgba(248,113,113,0.1)] shadow-[0_0_30px_rgba(248,113,113,0.05)_inset]";
 
   return (
     <>
@@ -379,7 +383,7 @@ function TodayView(data: DashboardData) {
 
           <div className="magic-progress-track h-2 w-full overflow-hidden rounded-full">
             <div
-              className="h-full rounded-full bg-[linear-gradient(90deg,#7CFF61,#39FF14,#20E70A)] shadow-[0_0_30px_rgba(57,255,20,0.24)] transition-all duration-1000"
+              className={`h-full rounded-full transition-all duration-1000 ${progressColorClass}`}
               style={{ width: `${progressWidth}%` }}
             />
           </div>
@@ -389,30 +393,41 @@ function TodayView(data: DashboardData) {
           <button
             type="button"
             onClick={() => setShowStreakDetails(true)}
+            disabled={data.streak.currentStreak === 0 && data.streak.longestStreak === 0}
             className="magic-streak-card w-full rounded-[24px] bg-[#151518] px-5 py-5 text-left transition hover:bg-[#19191d]"
           >
-            <div className="flex items-start justify-between gap-4">
+            {data.streak.currentStreak === 0 && data.streak.longestStreak === 0 ? (
               <div>
                 <p className="magic-tech-label text-[11px] text-[#71717A]">STREAK</p>
-                <p className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-white">
-                  🔥 {data.streak.currentStreak}
-                </p>
-                <p className="mt-1 text-sm text-[#A1A1AA]">
-                  Best {data.streak.longestStreak}
-                </p>
+                <p className="mt-3 text-lg font-semibold tracking-[-0.03em] text-[#D4D4D8]">Start your first streak today.</p>
+                <p className="mt-1 text-sm text-[#A1A1AA]">Hit the daily target to catch fire.</p>
               </div>
-              <span className={`rounded-full px-3 py-1 text-xs font-medium ${streakTone}`}>
-                {streakLabel}
-              </span>
-            </div>
-            <div className="mt-4 flex items-center justify-between gap-4">
-              <p className="text-sm text-[#D4D4D8]">
-                {data.streak.message}
-              </p>
-              <p className="text-[11px] uppercase tracking-[0.16em] text-[#71717A]">
-                Details
-              </p>
-            </div>
+            ) : (
+              <>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="magic-tech-label text-[11px] text-[#71717A]">STREAK</p>
+                    <p className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-white">
+                      🔥 {data.streak.currentStreak}
+                    </p>
+                    <p className="mt-1 text-sm text-[#A1A1AA]">
+                      Best {data.streak.longestStreak}
+                    </p>
+                  </div>
+                  <span className={`rounded-full px-3 py-1 text-xs font-medium ${streakTone}`}>
+                    {streakLabel}
+                  </span>
+                </div>
+                <div className="mt-4 flex items-center justify-between gap-4">
+                  <p className="text-sm text-[#D4D4D8]">
+                    {data.streak.message}
+                  </p>
+                  <p className="text-[11px] uppercase tracking-[0.16em] text-[#71717A]">
+                    Details
+                  </p>
+                </div>
+              </>
+            )}
           </button>
         </div>
 
@@ -473,7 +488,7 @@ function TodayView(data: DashboardData) {
         </GlowCard>
 
         <div className="flex flex-col gap-5 lg:col-span-4 lg:gap-6">
-          <GlowCard className="magic-panel-glow p-6">
+          <GlowCard className={`p-6 ${timeBankBg}`}>
             <p className="magic-tech-label text-xs text-[#A1A1AA]">TIME BANK</p>
             <h2 className={`mt-2 text-4xl font-semibold tracking-[-0.04em] ${data.monthSummary.balanceMinutes >= 0 ? "text-[#4ADE80]" : "text-[#F87171]"}`}>
               {data.monthSummary.balanceMinutes >= 0 ? "+" : "-"}
@@ -484,46 +499,73 @@ function TodayView(data: DashboardData) {
             </p>
           </GlowCard>
 
-          <GlowCard className="relative overflow-hidden p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <p className="magic-tech-label text-xs text-[#A1A1AA]">LEAVE NOW IMPACT</p>
-              <div className="magic-glow-dot h-3 w-3 rounded-full bg-[#39FF14]" />
-            </div>
-            <div className="relative h-3 overflow-hidden rounded-full bg-[#1A1A1D]">
-              <div className="absolute inset-y-0 left-0 w-[58%] rounded-full bg-[linear-gradient(90deg,#7CFF61,#39FF14,#20E70A)] shadow-[0_0_24px_rgba(57,255,20,0.2)]" />
-            </div>
-            <div className="mt-6 rounded-[24px] bg-[#121214] px-5 py-5">
-              <p className="text-sm leading-6 text-white">
-                {leaveNowCopy}
-              </p>
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowSwipes((value) => !value)}
-                  disabled={!hasStartedToday}
-                  className="rounded-2xl bg-[#1A1A1D] px-4 py-3 text-left text-sm text-[#A1A1AA] transition hover:bg-[#202024] hover:text-white"
-                >
-                  {hasStartedToday ? `${data.todayEntry.swipes.length} swipes` : "No swipes yet"}
-                </button>
-                <div className="rounded-2xl bg-[#1A1A1D] px-4 py-3 text-sm text-[#A1A1AA]">
-                  Last synced {formatLastSynced(data.lastSyncedAt)}
-                </div>
-              </div>
-              {showSwipes && hasStartedToday ? (
-                <div className="mt-4 space-y-2">
-                  {data.todayEntry.swipes.map((swipe) => (
-                    <div
-                      key={swipe}
-                      className="flex items-center justify-between rounded-2xl bg-[#1A1A1D] px-4 py-3 text-sm text-[#A1A1AA]"
-                    >
-                      <span>Swipe</span>
-                      <span className="text-white">{toClockLabel(swipe)}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-            </div>
+          <GlowCard className="p-6">
+            {data.monthSummary.balanceMinutes < 0 ? (
+              <>
+                <p className="magic-tech-label text-xs text-[#A1A1AA]">RECOVERY PLAN</p>
+                <h3 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-white">
+                  +{formatMinutes(recoveryStep)}
+                </h3>
+                <p className="mt-2 text-sm text-[#A1A1AA]">
+                  Add this for the next 4 working days to catch up.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="magic-tech-label text-xs text-[#A1A1AA]">EARLY EXIT ALLOWANCE</p>
+                <h3 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-[#4ADE80]">
+                  -{formatMinutes(earlyExitAllowance)}/day
+                </h3>
+                <p className="mt-2 text-sm text-[#A1A1AA]">
+                  {earlyExitAllowance > 0
+                    ? "You can leave this much earlier every remaining day and still perfectly clear the month."
+                    : "You are exactly on pace. No surplus to burn yet."}
+                </p>
+              </>
+            )}
           </GlowCard>
+
+          {!hasStartedToday ? null : (
+            <GlowCard className="relative overflow-hidden p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <p className="magic-tech-label text-xs text-[#A1A1AA]">LEAVE NOW IMPACT</p>
+                <div className="magic-glow-dot h-3 w-3 rounded-full bg-[#39FF14]" />
+              </div>
+              <div className="relative h-3 overflow-hidden rounded-full bg-[#1A1A1D]">
+                <div className="absolute inset-y-0 left-0 w-[58%] rounded-full bg-[linear-gradient(90deg,#7CFF61,#39FF14,#20E70A)] shadow-[0_0_24px_rgba(57,255,20,0.2)]" />
+              </div>
+              <div className="mt-6 rounded-[24px] bg-[#121214] px-5 py-5">
+                <p className="text-sm leading-6 text-white">
+                  {leaveNowCopy}
+                </p>
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowSwipes((value) => !value)}
+                    disabled={!hasStartedToday}
+                    className="rounded-2xl bg-[#1A1A1D] px-4 py-3 text-left text-sm text-[#A1A1AA] transition hover:bg-[#202024] hover:text-white"
+                  >
+                    {hasStartedToday ? `${data.todayEntry.swipes.length} swipes` : "No swipes yet"}
+                  </button>
+                  <div className="rounded-2xl bg-[#1A1A1D] px-4 py-3 text-sm text-[#A1A1AA]">
+                    Last synced {formatLastSynced(data.lastSyncedAt)}
+                  </div>
+                </div>
+                {showSwipes && hasStartedToday ? (
+                  <div className="mt-4 space-y-2">
+                    {data.todayEntry.swipes.map((swipe) => (
+                      <div
+                        key={swipe}
+                        className="flex items-center justify-between rounded-2xl bg-[#1A1A1D] px-4 py-3 text-sm text-[#A1A1AA]"
+                      >
+                        <span>Swipe</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            </GlowCard>
+          )}
         </div>
       </div>
 
@@ -544,7 +586,9 @@ function TodayView(data: DashboardData) {
               {data.streak.weeklyForgivenessUsed ? "Already used this week" : "Still available this week"}
             </p>
             <p className="mt-2 text-sm text-[#A1A1AA]">
-              If one day goes wrong, the app can let it slide once in the week before the streak actually snaps.
+              {data.streak.graceUsedThisWeek
+                ? "30min grace buffer used this week."
+                : "30min grace buffer available."}
             </p>
           </div>
           <div className="rounded-[22px] bg-[#17171A] px-4 py-4">
@@ -587,98 +631,6 @@ function TodayView(data: DashboardData) {
   );
 }
 
-function PlanView({ monthSummary, streak }: Pick<DashboardData, "monthSummary" | "streak">) {
-  const daysLeft = Math.max(1, monthSummary.totalWorkingDays - monthSummary.workingDaysElapsed);
-  const recoveryStep = monthSummary.balanceMinutes < 0
-    ? Math.ceil(Math.abs(monthSummary.balanceMinutes) / Math.min(daysLeft, 4))
-    : 0;
-  const earlyExitAllowance = monthSummary.balanceMinutes > 0
-    ? Math.floor(monthSummary.balanceMinutes / daysLeft)
-    : 0;
-  const ifEight = Math.round(
-    (monthSummary.actualMinutesToDate + daysLeft * 8 * 60) / Math.max(1, monthSummary.totalWorkingDays),
-  );
-  const ifNine = Math.round(
-    (monthSummary.actualMinutesToDate + daysLeft * 9 * 60) / Math.max(1, monthSummary.totalWorkingDays),
-  );
-
-  return (
-    <div className="grid w-full max-w-6xl grid-cols-12 gap-6">
-      <GlowCard className="magic-panel-glow col-span-12 p-8 lg:col-span-7">
-        <p className="magic-tech-label text-xs text-[#A1A1AA]">TIME BANK</p>
-        <h2 className="magic-display text-[76px] text-white">
-          {monthSummary.balanceMinutes >= 0 ? "+" : "-"}
-          {formatMinutes(Math.abs(monthSummary.balanceMinutes))}
-        </h2>
-        <p className="mt-4 text-base text-[#A1A1AA]">
-          {monthSummary.balanceMinutes >= 0
-            ? "You can coast a little. The month still stays safe."
-            : "You need recovery, but it is still recoverable without drama."}
-        </p>
-      </GlowCard>
-
-      <GlowCard className="col-span-12 p-8 lg:col-span-5">
-        <p className="magic-tech-label text-xs text-[#A1A1AA]">REQUIRED PACE</p>
-        <h3 className="mt-3 text-4xl font-semibold tracking-[-0.04em] text-white">
-          {formatMinutes(monthSummary.recommendedDailyAverageMinutes)}/day
-        </h3>
-        <p className="mt-3 text-sm text-[#A1A1AA]">
-          Longest streak: {streak.longestStreak} days
-        </p>
-      </GlowCard>
-
-      <GlowCard className="col-span-12 p-8 lg:col-span-4">
-        {monthSummary.balanceMinutes < 0 ? (
-          <>
-            <p className="magic-tech-label text-xs text-[#A1A1AA]">RECOVERY PLAN</p>
-            <h3 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-white">
-              +{formatMinutes(recoveryStep)}
-            </h3>
-            <p className="mt-3 text-sm text-[#A1A1AA]">
-              Add this for the next 4 working days to catch up.
-            </p>
-          </>
-        ) : (
-          <>
-            <p className="magic-tech-label text-xs text-[#A1A1AA]">EARLY EXIT ALLOWANCE</p>
-            <h3 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-[#4ADE80]">
-              -{formatMinutes(earlyExitAllowance)}/day
-            </h3>
-            <p className="mt-3 text-sm text-[#A1A1AA]">
-              {earlyExitAllowance > 0
-                ? "You can leave this much earlier every remaining day and still perfectly clear the month."
-                : "You are exactly on pace. No surplus to burn yet."}
-            </p>
-          </>
-        )}
-      </GlowCard>
-
-      <GlowCard className="col-span-12 p-8 lg:col-span-8">
-        <p className="magic-tech-label text-xs text-[#A1A1AA]">SCENARIOS</p>
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
-          <div className="rounded-[22px] bg-[#17171A] p-5">
-            <p className="text-sm text-[#A1A1AA]">If you do 8h/day</p>
-            <p className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-white">
-              {formatMinutes(ifEight)}
-            </p>
-            <p className={`mt-2 text-sm ${ifEight >= DAILY_TARGET_MINUTES ? "text-[#4ADE80]" : "text-[#F87171]"}`}>
-              {ifEight >= DAILY_TARGET_MINUTES ? "Safe" : "Below target"}
-            </p>
-          </div>
-          <div className="rounded-[22px] bg-[#17171A] p-5">
-            <p className="text-sm text-[#A1A1AA]">If you do 9h/day</p>
-            <p className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-white">
-              {formatMinutes(ifNine)}
-            </p>
-            <p className={`mt-2 text-sm ${ifNine >= DAILY_TARGET_MINUTES ? "text-[#4ADE80]" : "text-[#F87171]"}`}>
-              {ifNine >= DAILY_TARGET_MINUTES ? "Safe" : "Below target"}
-            </p>
-          </div>
-        </div>
-      </GlowCard>
-    </div>
-  );
-}
 
 function deriveStanding(profileName: string, entries: LeaderboardEntry[], minutes: number) {
   const publicEntries = entries.filter((entry) => entry.public);
@@ -783,12 +735,16 @@ function LeaderboardView({
           <div className="mt-6 space-y-3">
             {rankedEntries.map((entry, index) => {
               const tags = getLeaderboardTags(entry, visibleEntries);
+              const rankColor = index === 0 ? "text-[#FBBF24]" 
+                : index === 1 ? "text-[#9CA3AF]" 
+                : index === 2 ? "text-[#B45309]" 
+                : "text-white";
               return (
                 <div key={entry.id} className="rounded-[22px] bg-[#17171A] px-4 py-4">
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <div className="flex items-center gap-3">
-                        <p className="text-lg font-semibold tracking-[-0.03em] text-white">#{index + 1}</p>
+                        <p className={`text-xl font-semibold tracking-[-0.03em] ${rankColor}`}>#{index + 1}</p>
                         <p className="text-lg font-semibold tracking-[-0.03em] text-white">{entry.alias}</p>
                       </div>
                       <div className="mt-3 flex flex-wrap gap-2">
@@ -804,9 +760,11 @@ function LeaderboardView({
                     </div>
                     <div className="text-right">
                       <p className="whitespace-nowrap text-sm font-semibold text-white sm:text-base">
+                        <span className="mr-1 text-[10px] font-normal tracking-[0.1em] text-[#71717A] uppercase transition">avg</span>
                         {formatMinutes(entry.averageDailyMinutes ?? 0)}
                       </p>
                       <p className="mt-1 whitespace-nowrap text-xs text-[#A1A1AA]">
+                        <span className="mr-1 text-[10px] font-normal tracking-[0.1em] text-[#71717A] uppercase transition">streak</span>
                         🔥 {entry.currentStreak ?? 0}
                       </p>
                     </div>
@@ -923,6 +881,20 @@ function ProfileView({
               </p>
             ) : null}
           </form>
+        </GlowCard>
+
+        <GlowCard className="p-8">
+          <p className="magic-tech-label text-xs text-[#A1A1AA]">SUPPORT</p>
+          <div className="mt-4 flex flex-col gap-2">
+            <h2 className="text-lg font-semibold text-white">Find a bug or have an idea?</h2>
+            <p className="text-sm text-[#A1A1AA]">Reach out to share feedback on how to make this better.</p>
+            <a
+              href="mailto:support@logout.app"
+              className="mt-3 inline-block rounded-full bg-[#17171A] px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#1f1f24]"
+            >
+              Email Support
+            </a>
+          </div>
         </GlowCard>
       </div>
 
@@ -1114,7 +1086,6 @@ export function AppShell(data: DashboardData) {
         <Header monthSummary={data.monthSummary} />
 
         {currentTab === "today" ? <TodayView {...data} /> : null}
-        {currentTab === "plan" ? <PlanView monthSummary={data.monthSummary} streak={data.streak} /> : null}
         {currentTab === "leaderboard" ? (
           <LeaderboardView
             profile={data.profile}
