@@ -551,7 +551,7 @@ async function fetchSwipeData(cookieJar: CookieJar, greythrUserId: string, acces
   const responseText = await response.text();
   if (!response.ok) {
     throw new Error(
-      `[step6] swipe fetch failed (${response.status}): ${previewResponseBody(responseText)}`,
+      `[step6] swipe fetch failed (${response.status}) for ID [${greythrUserId}]: ${previewResponseBody(responseText)}`,
     );
   }
 
@@ -599,40 +599,34 @@ async function finalizePortalSession(cookieJar: CookieJar) {
   return responseText;
 }
 
-async function discoverUserId(cookieJar: CookieJar, accessToken: string | null) {
-  const url = "https://wortgage.greythr.com/uas/v1/user/profile";
-  const authHeader: Record<string, string> = accessToken
-    ? { Authorization: `Bearer ${accessToken}` }
-    : {};
-
-  console.log(`[step5d] discovering userId from profile endpoint`);
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      ...buildBrowserHeaders({
-        Accept: "application/json, text/plain, */*",
-        Cookie: cookieJar.toHeader(),
-        "X-Requested-With": "XMLHttpRequest",
-        ...authHeader,
-      }),
-    },
-  });
-
-  if (response.ok) {
+async function discoverUserId(cookieJar: CookieJar, accessToken: string | null, userName: string): Promise<{ id: string, debug: string }> {
+  let debug = "no_token";
+  if (accessToken) {
     try {
-      const data = await response.json();
-      if (data.userId) {
-        console.log(`[step5d] discovered userId: ${data.userId}`);
-        return String(data.userId);
+      const base64Url = accessToken.split('.')[1];
+      if (base64Url) {
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        const payloadObj = JSON.parse(jsonPayload);
+        debug = `jwt_keys:[${Object.keys(payloadObj).join(",")}]`;
+        
+        const candidateId = payloadObj.sub || payloadObj.userId || payloadObj.employeeId || payloadObj.user_id || payloadObj.id || payloadObj.empId;
+        if (candidateId) {
+          console.log(`[step5d] discovered userId from JWT: ${candidateId}`);
+          return { id: String(candidateId), debug: `${debug} | found:${candidateId}` };
+        }
+        console.log(`[step5d] JWT payload did not contain known ID keys. ${debug}`);
       }
-      throw new Error(`Profile JSON did not contain userId: ${JSON.stringify(data).slice(0, 500)}`);
     } catch (e: any) {
-      console.log(`[step5d] profile parse error: ${e.message}`);
-      throw new Error(`discoverUserId failed: ${e.message}`);
+      debug = `jwt_error:${e.message}`;
+      console.log(`[step5d] failed to parse JWT: ${e.message}`);
     }
-  } else {
-    throw new Error(`[step5d] profile fetch failed with status ${response.status}`);
   }
+  
+  console.log(`[step5d] falling back to userName for userId`);
+  return { id: userName, debug };
 }
 
 function buildSuccessResult(
@@ -774,8 +768,11 @@ Deno.serve(async (request: Request) => {
     await finalizePortalSession(cookieJar);
 
     let syncUserId = payload.greythrUserId;
+    let discoveryDebug = "none";
     if (!syncUserId) {
-      syncUserId = (await discoverUserId(cookieJar, accessToken)) ?? undefined;
+      const discovery = await discoverUserId(cookieJar, accessToken, payload.userName);
+      syncUserId = discovery.id;
+      discoveryDebug = discovery.debug;
     }
 
     let swipeRequest: LoginResult["swipeRequest"];
@@ -804,7 +801,7 @@ Deno.serve(async (request: Request) => {
         previewResponseBody(responseText),
         swipeRequest,
         swipeResponse,
-        syncUserId,
+        `${syncUserId} | dbg: ${discoveryDebug}`,
       ),
       {
         status: response.ok ? 200 : 401,
