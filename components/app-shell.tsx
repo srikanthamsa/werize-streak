@@ -59,7 +59,7 @@ const tabs: TabDefinition[] = [
     label: "Leaderboard",
     icon: (
       <path
-        d="M16 21v-1.5a3.5 3.5 0 0 0-3.5-3.5h-1A3.5 3.5 0 0 0 8 19.5V21m10-8a2.5 2.5 0 1 0-2.2-3.7M6 13a2.5 2.5 0 1 1 2.2-3.7M12 13a3 3 0 1 0 0-6a3 3 0 0 0 0 6Z"
+        d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6m12 5h1.5a2.5 2.5 0 0 0 0-5H18M8 21h8m-4-6v6m-4-6c0 3 1.5 4 4 4s4-1 4-4V5H8v10Z"
         stroke="currentColor"
         strokeWidth="1.8"
         fill="none"
@@ -87,7 +87,7 @@ const tabs: TabDefinition[] = [
     label: "Notifications",
     icon: (
       <path 
-        d="M15 17h5l-1.4-5.2a3 3 0 0 0-1-6.8a5.5 5.5 0 0 0-11.2 0a3 3 0 0 0-1 6.8L4 17h5m6 0a3 3 0 0 1-6 0" 
+        d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"
         stroke="currentColor" 
         strokeWidth="1.8" 
         fill="none" 
@@ -594,6 +594,19 @@ function TodayView(data: DashboardData) {
               </div>
             </GlowCard>
           )}
+
+          {!hasStartedToday ? (
+            <button
+              type="button"
+              onClick={() => alert("Leave request queued. The server will calibrate your target.")}
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-[24px] border border-[#2d2d33] bg-[#121214] p-5 text-sm font-semibold text-[#A1A1AA] transition hover:bg-[#1A1A1D] hover:text-white"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M16 4h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h4m4-2v4m0 4v8m-4-4l4 4l4-4" />
+              </svg>
+              Mark Today as Leave
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -781,14 +794,20 @@ function InsightsView({ monthEntries, monthSummary }: Pick<DashboardData, "month
           <div className="rounded-[22px] bg-[#17171A] p-5">
             <p className="text-sm text-[#A1A1AA]">Best / Worst Days</p>
             {bestDay && worstDay ? (
-              <div className="mt-4 flex flex-col gap-3">
+              <div className="mt-4 flex flex-col gap-4">
                  <div className="flex items-center justify-between">
-                   <p className="text-base text-white">🟢 {bestDay.day}s</p>
-                   <p className="text-sm text-[#A1A1AA]">Avg {formatMinutes(Math.round(bestDay.avg))}</p>
+                   <div className="flex items-center gap-3">
+                     <span className="flex h-6 items-center rounded-sm bg-[rgba(57,255,20,0.1)] px-2 text-[10px] font-bold uppercase tracking-wider text-[#39FF14]">Peak</span>
+                     <p className="text-base text-white">{bestDay.day}s</p>
+                   </div>
+                   <p className="text-sm font-medium text-[#A1A1AA]">Avg {formatMinutes(Math.round(bestDay.avg))}</p>
                  </div>
                  <div className="flex items-center justify-between">
-                   <p className="text-base text-white">🔴 {worstDay.day}s</p>
-                   <p className="text-sm text-[#A1A1AA]">Avg {formatMinutes(Math.round(worstDay.avg))}</p>
+                   <div className="flex items-center gap-3">
+                     <span className="flex h-6 items-center rounded-sm bg-[rgba(248,113,113,0.1)] px-2 text-[10px] font-bold uppercase tracking-wider text-[#F87171]">Drag</span>
+                     <p className="text-base text-white">{worstDay.day}s</p>
+                   </div>
+                   <p className="text-sm font-medium text-[#A1A1AA]">Avg {formatMinutes(Math.round(worstDay.avg))}</p>
                  </div>
               </div>
             ) : (
@@ -822,15 +841,54 @@ function InsightsView({ monthEntries, monthSummary }: Pick<DashboardData, "month
 }
 
 function NotificationsView() {
+  const notifications = [
+    {
+      id: 1,
+      type: "new_join",
+      user: "Alex R.",
+      message: "just connected their workspace. They are calibrating their first streak.",
+      time: "22m ago"
+    },
+    {
+      id: 2,
+      type: "achievement",
+      user: "Sarah T.",
+      message: "just cleared their 9 hours for the day and bumped you to Rank #4.",
+      time: "1h ago"
+    },
+    {
+      id: 3,
+      type: "streak",
+      user: "Rahul M.",
+      message: "caught fire! They just hit a 5-day hot streak.",
+      time: "3h ago"
+    }
+  ];
+
   return (
-    <div className="flex w-full max-w-6xl flex-col items-center justify-center py-20 text-center">
-      <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full border border-[#2d2d33] bg-[#17171A]">
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-[#A1A1AA]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M15 17h5l-1.4-5.2a3 3 0 0 0-1-6.8a5.5 5.5 0 0 0-11.2 0a3 3 0 0 0-1 6.8L4 17h5m6 0a3 3 0 0 1-6 0" />
+    <div className="grid w-full max-w-6xl grid-cols-1 gap-4">
+      <h2 className="mb-2 text-2xl font-semibold tracking-[-0.04em] text-white">Activity</h2>
+      
+      {notifications.map(n => (
+        <div key={n.id} className="flex items-start gap-4 rounded-[22px] bg-[#17171A] p-5 shadow-sm transition hover:bg-[#1a1a1e]">
+          <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#121214] border border-[#2d2d33]">
+            {n.type === "new_join" ? "👋" : n.type === "achievement" ? "🏆" : "🔥"}
+          </div>
+          <div>
+            <p className="text-[15px] leading-snug text-[#D4D4D8]">
+              <span className="font-semibold text-white">{n.user}</span> {n.message}
+            </p>
+            <p className="mt-1 text-[13px] text-[#71717A]">{n.time}</p>
+          </div>
+        </div>
+      ))}
+
+      <div className="mt-6 flex w-full flex-col items-center justify-center py-12 text-center opacity-70">
+        <svg xmlns="http://www.w3.org/2000/svg" className="mb-4 h-6 w-6 text-[#71717A]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
         </svg>
+        <p className="text-sm text-[#71717A]">No older notifications.</p>
       </div>
-      <h2 className="text-2xl font-semibold tracking-[-0.04em] text-white">All caught up!</h2>
-      <p className="mt-2 text-[#A1A1AA]">When someone breaks your leaderboard rank or status updates happen, they'll show here.</p>
     </div>
   );
 }
