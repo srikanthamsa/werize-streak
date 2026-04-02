@@ -50,12 +50,11 @@ function extractAttendanceRows(payload: any) {
     const grouped = new Map<string, string[]>();
 
     for (const entry of payload.swipe) {
-      const attendanceDate = entry.attendanceDate;
       const punchDateTime = entry.punchDateTime;
+      if (!punchDateTime) continue;
 
-      if (!attendanceDate || !punchDateTime) {
-        continue;
-      }
+      // Use attendanceDate if populated, otherwise derive from punchDateTime
+      const attendanceDate = entry.attendanceDate ?? punchDateTime.split("T")[0];
 
       const existing = grouped.get(attendanceDate) ?? [];
       existing.push(punchDateTime);
