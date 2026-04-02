@@ -31,6 +31,7 @@ type EdgeFunctionResponse = {
       systemSwipes?: string[];
     }>;
   };
+  discoveredUserId?: string;
   error?: string;
 };
 
@@ -151,9 +152,16 @@ export async function runAttendanceSync(profileId: string): Promise<SyncState> {
       };
     }
 
+    if (edgePayload.discoveredUserId && !profileRow.greythr_user_id) {
+      await supabase
+        .from("user_profiles")
+        .update({ greythr_user_id: edgePayload.discoveredUserId })
+        .eq("id", profileId);
+    }
+
     const attendanceRows = extractAttendanceRows(edgePayload.swipeResponse);
     if (!attendanceRows.length) {
-      return { ok: true, message: "Sync succeeded but returned no swipe rows for this boundary. Check dashboard." };
+      return { ok: false, message: "Sync succeeded but returned no swipe rows. Re-check credentials or wait for swipes." };
     }
 
     const upsertPayload = attendanceRows.map((row: { attendance_date: string; swipe_times: string[] }) => ({

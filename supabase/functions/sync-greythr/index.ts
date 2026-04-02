@@ -47,6 +47,7 @@ type LoginResult = {
     url: string;
   };
   swipeResponse?: unknown;
+  discoveredUserId?: string;
 };
 
 const SESSION_CONFIG_URL = Deno.env.get("GREYTHR_SESSION_CONFIG_URL") ??
@@ -624,14 +625,14 @@ async function discoverUserId(cookieJar: CookieJar, accessToken: string | null) 
         console.log(`[step5d] discovered userId: ${data.userId}`);
         return String(data.userId);
       }
-    } catch {
-      console.log("[step5d] profile response was not JSON");
+      throw new Error(`Profile JSON did not contain userId: ${JSON.stringify(data).slice(0, 500)}`);
+    } catch (e: any) {
+      console.log(`[step5d] profile parse error: ${e.message}`);
+      throw new Error(`discoverUserId failed: ${e.message}`);
     }
   } else {
-    console.log(`[step5d] profile fetch failed with status ${response.status}`);
+    throw new Error(`[step5d] profile fetch failed with status ${response.status}`);
   }
-
-  return null;
 }
 
 function buildSuccessResult(
@@ -643,6 +644,7 @@ function buildSuccessResult(
   responsePreview: string,
   swipeRequest?: LoginResult["swipeRequest"],
   swipeResponse?: unknown,
+  discoveredUserId?: string,
 ): LoginResult {
   return {
     success: loginStatus >= 200 && loginStatus < 400,
@@ -655,6 +657,7 @@ function buildSuccessResult(
     responsePreview,
     swipeRequest,
     swipeResponse,
+    discoveredUserId,
   };
 }
 
@@ -801,6 +804,7 @@ Deno.serve(async (request: Request) => {
         previewResponseBody(responseText),
         swipeRequest,
         swipeResponse,
+        syncUserId,
       ),
       {
         status: response.ok ? 200 : 401,
