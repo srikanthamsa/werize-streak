@@ -6,3 +6,5 @@ dist
 coverage
 *.log
 *.tsbuildinfo
+.vercel
+.claude/settings.local.json
