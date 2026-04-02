@@ -879,7 +879,7 @@ function ProfileView({
           href="/setup"
           className="mt-6 inline-flex rounded-full bg-[#17171A] px-5 py-3 text-sm font-semibold text-white"
         >
-          Manage credentials
+          Update settings
         </Link>
       </GlowCard>
 

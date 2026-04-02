@@ -174,14 +174,21 @@ export function OnboardingForm({
       <div className="relative z-10 flex min-h-[calc(100vh-3rem)] items-center justify-center">
         <div className="magic-panel mx-auto w-full max-w-3xl rounded-[32px] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.45)]">
           <div className="flex flex-col gap-2">
-            <p className="magic-tech-label text-xs uppercase tracking-[0.24em] text-[#A1A1AA]">
-              Streak Setup
-            </p>
+            <div className="flex items-center justify-between">
+              <p className="magic-tech-label text-xs uppercase tracking-[0.24em] text-[#A1A1AA]">
+                {isLive ? "Settings" : "Streak Setup"}
+              </p>
+              {isLive ? (
+                <Link href="/" className="text-sm font-semibold text-[#A1A1AA] hover:text-white transition">
+                  Back to Dashboard
+                </Link>
+              ) : null}
+            </div>
             <h1
               className={`text-white text-[38px] font-semibold leading-[1.02] tracking-[-0.035em] sm:text-[52px]`}
             >
               {isAuthenticated ? (
-                "Turn on the magic once."
+                isLive ? "Update your settings." : "Turn on the magic once."
               ) : (
                 <>
                   Sign in, and see the magic inside{" "}
@@ -194,7 +201,8 @@ export function OnboardingForm({
             </h1>
             <p className="max-w-2xl text-sm leading-6 text-[#A1A1AA]">
               {isAuthenticated
-                ? "Connect your work account once and let Streak quietly handle the rest."
+                ? (isLive ? "Update your greytHR password, display name, or leaderboard preferences below." 
+                          : "Connect your work account once and let Streak quietly handle the rest.")
                 : "Sign in with your work Google account. We'll keep the rest simple."}
             </p>
           </div>
@@ -338,10 +346,10 @@ export function OnboardingForm({
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
-                        Saving and running first sync...
+                        {isLive ? "Updating details..." : "Saving and running first sync..."}
                       </>
                     ) : (
-                      "Turn on the magic"
+                      isLive ? "Save Settings" : "Turn on the magic"
                     )}
                   </button>
 
