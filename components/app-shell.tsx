@@ -366,7 +366,7 @@ function TodayView(data: DashboardData) {
         </div>
 
         <div className={`mt-6 inline-flex items-center gap-3 rounded-full px-4 py-3 text-sm ${hasStartedToday ? status.tone : "bg-[#17171A] text-[#A1A1AA]"}`}>
-          <span className={`h-2.5 w-2.5 rounded-full ${hasStartedToday ? (status.label === "Behind" ? "bg-[#F87171] shadow-[0_0_18px_#F87171]" : "bg-[#4ADE80] shadow-[0_0_18px_#4ADE80]") : "bg-[#71717A]"}`} />
+          <span className={`h-2.5 w-2.5 rounded-full ${hasStartedToday ? (status.label === "Behind" ? "bg-[#F87171] shadow-[0_0_18px_#F87171]" : "bg-[#4ADE80] shadow-[0_0_18px_#4ADE80]") : "bg-gradient-to-tr from-[#F59E0B] to-[#FDE047] shadow-[0_0_12px_rgba(253,224,71,0.5)]"}`} />
           <span>{hasStartedToday ? statusCopy : "Day not started yet."}</span>
         </div>
 
