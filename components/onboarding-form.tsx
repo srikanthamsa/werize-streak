@@ -245,9 +245,10 @@ export function OnboardingForm({
                     <span className="mb-2 block text-sm font-semibold text-white">Work email</span>
                     <input
                       type="email"
-                      value={userEmail}
-                      readOnly
-                      className="w-full rounded-2xl bg-[#17171A] px-4 py-3 text-sm text-[#A1A1AA] outline-none"
+                      name="email"
+                      defaultValue={userEmail}
+                      placeholder="name@werize.com"
+                      className="w-full rounded-2xl bg-[#17171A] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[#71717A] focus:ring-1 focus:ring-[#7DFF31]"
                     />
                   </label>
 
@@ -257,8 +258,7 @@ export function OnboardingForm({
                       type="text"
                       name="fullName"
                       required
-                      defaultValue={profileName}
-                      placeholder="Srikant Hamsa"
+                      placeholder="Enter your name"
                       className="w-full rounded-2xl bg-[#17171A] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[#71717A] focus:ring-1 focus:ring-[#7DFF31]"
                     />
                   </label>
@@ -270,8 +270,7 @@ export function OnboardingForm({
                         type="text"
                         name="team"
                         required
-                        defaultValue={team}
-                        placeholder="Product Team"
+                        placeholder="e.g. Product Team"
                         className="w-full rounded-2xl bg-[#17171A] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[#71717A] focus:ring-1 focus:ring-[#7DFF31]"
                       />
                     </label>
@@ -281,8 +280,7 @@ export function OnboardingForm({
                       <input
                         type="text"
                         name="role"
-                        defaultValue={role}
-                        placeholder="Product Analyst"
+                        placeholder="e.g. Product Analyst"
                         className="w-full rounded-2xl bg-[#17171A] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[#71717A] focus:ring-1 focus:ring-[#7DFF31]"
                       />
                     </label>
