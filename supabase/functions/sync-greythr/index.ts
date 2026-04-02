@@ -521,7 +521,7 @@ async function bootstrapLatteSession(cookieJar: CookieJar, accessToken: string |
   console.log(`[step6] latte bootstrap status=${response.status}`);
 }
 
-async function fetchSwipeData(cookieJar: CookieJar, greythrUserId: string, accessToken: string | null) {
+async function fetchSwipeData(cookieJar: CookieJar, greythrUserId: string, accessToken: string | null, discoveryDebug: string) {
   await bootstrapLatteSession(cookieJar, accessToken);
   const authHeader: Record<string, string> = accessToken
     ? { Authorization: `Bearer ${accessToken}` }
@@ -551,7 +551,7 @@ async function fetchSwipeData(cookieJar: CookieJar, greythrUserId: string, acces
   const responseText = await response.text();
   if (!response.ok) {
     throw new Error(
-      `[step6] swipe fetch failed (${response.status}) for ID [${greythrUserId}]: ${previewResponseBody(responseText)}`,
+      `[step6] swipe fetch failed (${response.status}) for ID [${greythrUserId}] (dbg: ${discoveryDebug}): ${previewResponseBody(responseText)}`,
     );
   }
 
@@ -779,7 +779,7 @@ Deno.serve(async (request: Request) => {
     let swipeResponse: unknown;
 
     if (syncUserId) {
-      const swipeResult = await fetchSwipeData(cookieJar, syncUserId, accessToken);
+      const swipeResult = await fetchSwipeData(cookieJar, syncUserId, accessToken, discoveryDebug);
       swipeRequest = {
         greythrUserId: syncUserId,
         startDate: swipeResult.startDate,
