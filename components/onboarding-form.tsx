@@ -78,6 +78,7 @@ export function OnboardingForm({
   const [email, setEmail] = useState(userEmail);
   const [authMessage, setAuthMessage] = useState(authError ? mapAuthMessage(authError) : "");
   const [authPending, setAuthPending] = useState(false);
+  const [hashLoginPending, setHashLoginPending] = useState(false);
   const [setupState, setupAction, setupPending] = useActionState(saveCredentialsAction, initialSetupState);
   const router = useRouter();
   const lastSyncedLabel = formatLastSynced(lastSyncedAt);
@@ -98,6 +99,52 @@ export function OnboardingForm({
   useEffect(() => {
     setAuthMessage(authError ? mapAuthMessage(authError) : "");
   }, [authError]);
+
+  useEffect(() => {
+    if (isAuthenticated || typeof window === "undefined") {
+      return;
+    }
+
+    const hash = window.location.hash.startsWith("#")
+      ? new URLSearchParams(window.location.hash.slice(1))
+      : null;
+
+    const accessToken = hash?.get("access_token");
+    const refreshToken = hash?.get("refresh_token");
+    const expiresIn = hash?.get("expires_in");
+
+    if (!accessToken || !refreshToken) {
+      return;
+    }
+
+    setHashLoginPending(true);
+    setAuthMessage("");
+
+    void fetch("/api/auth/session", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        accessToken,
+        refreshToken,
+        expiresIn: expiresIn ? Number(expiresIn) : 3600,
+      }),
+    }).then(async (response) => {
+      if (!response.ok) {
+        setAuthMessage("We could not finish signing you in. Request a fresh magic link.");
+        setHashLoginPending(false);
+        return;
+      }
+
+      window.history.replaceState({}, "", "/setup");
+      router.refresh();
+      setHashLoginPending(false);
+    }).catch(() => {
+      setAuthMessage("We could not finish signing you in. Request a fresh magic link.");
+      setHashLoginPending(false);
+    });
+  }, [isAuthenticated, router]);
 
   async function handleMagicLink(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -177,10 +224,10 @@ export function OnboardingForm({
 
                 <button
                   type="submit"
-                  disabled={authPending}
+                  disabled={authPending || hashLoginPending}
                   className="inline-flex rounded-full bg-gradient-to-r from-[#B9FF31] to-[#67FF39] px-5 py-3 text-sm font-semibold text-[#0B0B0C] transition hover:translate-y-[-1px] disabled:opacity-60"
                 >
-                  {authPending ? "Sending magic link..." : "Send magic link"}
+                  {hashLoginPending ? "Signing you in..." : authPending ? "Sending magic link..." : "Send magic link"}
                 </button>
 
                 {authMessage ? (
