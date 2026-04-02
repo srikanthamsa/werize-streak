@@ -467,7 +467,7 @@ function TodayView(data: DashboardData) {
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <MiniCard title="Avoid LOP" value={minimumViable ? toClockLabel(minimumViable) : "--"} />
               <MiniCard title="Comfort zone" value={comfortable ? toClockLabel(comfortable) : "--"} />
-              <MiniCard highlight title="Clear to go" value={required ? toClockLabel(required) : "--"} />
+              <MiniCard highlight title="Remaining" value={formatMinutes(minutesRemaining)} />
             </div>
           ) : null}
         </GlowCard>
@@ -592,6 +592,9 @@ function PlanView({ monthSummary, streak }: Pick<DashboardData, "monthSummary" |
   const recoveryStep = monthSummary.balanceMinutes < 0
     ? Math.ceil(Math.abs(monthSummary.balanceMinutes) / Math.min(daysLeft, 4))
     : 0;
+  const earlyExitAllowance = monthSummary.balanceMinutes > 0
+    ? Math.floor(monthSummary.balanceMinutes / daysLeft)
+    : 0;
   const ifEight = Math.round(
     (monthSummary.actualMinutesToDate + daysLeft * 8 * 60) / Math.max(1, monthSummary.totalWorkingDays),
   );
@@ -625,17 +628,29 @@ function PlanView({ monthSummary, streak }: Pick<DashboardData, "monthSummary" |
       </GlowCard>
 
       <GlowCard className="col-span-12 p-8 lg:col-span-4">
-        <p className="magic-tech-label text-xs text-[#A1A1AA]">RECOVERY PLAN</p>
-        <h3 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-white">
-          {monthSummary.balanceMinutes < 0 ? `+${formatMinutes(recoveryStep)}` : "Stable"}
-        </h3>
-        <p className="mt-3 text-sm text-[#A1A1AA]">
-          {monthSummary.balanceMinutes < 0
-            ? "Add this for the next 4 working days."
-            : streak.weeklyForgivenessUsed
-            ? "Forgiveness is already spent this week."
-            : "No recovery needed right now."}
-        </p>
+        {monthSummary.balanceMinutes < 0 ? (
+          <>
+            <p className="magic-tech-label text-xs text-[#A1A1AA]">RECOVERY PLAN</p>
+            <h3 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-white">
+              +{formatMinutes(recoveryStep)}
+            </h3>
+            <p className="mt-3 text-sm text-[#A1A1AA]">
+              Add this for the next 4 working days to catch up.
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="magic-tech-label text-xs text-[#A1A1AA]">EARLY EXIT ALLOWANCE</p>
+            <h3 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-[#4ADE80]">
+              -{formatMinutes(earlyExitAllowance)}/day
+            </h3>
+            <p className="mt-3 text-sm text-[#A1A1AA]">
+              {earlyExitAllowance > 0
+                ? "You can leave this much earlier every remaining day and still perfectly clear the month."
+                : "You are exactly on pace. No surplus to burn yet."}
+            </p>
+          </>
+        )}
       </GlowCard>
 
       <GlowCard className="col-span-12 p-8 lg:col-span-8">
@@ -829,7 +844,8 @@ function ProfileView({
   lastSyncedAt,
   isLive,
   monthEntries,
-}: Pick<DashboardData, "syncUserId" | "lastSyncedAt" | "isLive" | "monthEntries">) {
+  profile,
+}: Pick<DashboardData, "syncUserId" | "lastSyncedAt" | "isLive" | "monthEntries" | "profile">) {
   const [syncState, syncAction, isPending] = useActionState(syncAttendanceAction, {
     ok: false,
     message: "",
@@ -851,38 +867,64 @@ function ProfileView({
 
   return (
     <div className="grid w-full max-w-6xl grid-cols-12 gap-6">
-      <GlowCard className="col-span-12 p-8 lg:col-span-5">
-        <p className="magic-tech-label text-xs text-[#A1A1AA]">PROFILE</p>
-        <h2 className="mt-3 text-4xl font-semibold tracking-[-0.04em] text-white">
-          {isLive ? "Sync is live" : "Demo mode"}
-        </h2>
-        <p className="mt-3 text-sm text-[#A1A1AA]">
-          Last synced {formatLastSynced(lastSyncedAt)}
-        </p>
+      <div className="col-span-12 flex flex-col gap-6 lg:col-span-5">
+        <GlowCard className="p-8">
+          <p className="magic-tech-label text-xs text-[#A1A1AA]">PROFILE & SETTINGS</p>
+          <h2 className="mt-4 text-3xl font-semibold tracking-[-0.04em] text-white">
+            {profile?.fullName ?? "You"}
+          </h2>
+          <p className="mt-1 text-[#A1A1AA]">
+            {profile?.role ?? "Team Member"} · {profile?.team ?? "Team"}
+          </p>
 
-        <form action={syncAction} className="mt-6 flex flex-col items-start gap-3">
-          <input type="hidden" name="profileId" value={syncUserId ?? ""} />
-          <button
-            type="submit"
-            disabled={!syncUserId || isPending}
-            className="rounded-full bg-gradient-to-r from-[#4ADE80] to-[#22C55E] px-5 py-3 text-sm font-semibold text-[#08110B] shadow-[0_0_30px_rgba(74,222,128,0.18)] transition disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {isPending ? "Analyzing your day..." : "Run manual sync"}
-          </button>
-          {syncState.message ? (
-            <p className={`text-sm ${syncState.ok ? "text-[#4ADE80]" : "text-[#F87171]"}`}>
-              {syncState.message}
-            </p>
-          ) : null}
-        </form>
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <Link
+              href="/setup"
+              className="inline-flex rounded-full bg-[#17171A] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#1f1f24]"
+            >
+              Update Preferences
+            </Link>
 
-        <Link
-          href="/setup"
-          className="mt-6 inline-flex rounded-full bg-[#17171A] px-5 py-3 text-sm font-semibold text-white"
-        >
-          Update settings
-        </Link>
-      </GlowCard>
+            <form action="/auth/logout" method="POST">
+              <button
+                type="submit"
+                className="inline-flex rounded-full bg-[rgba(248,113,113,0.1)] px-5 py-3 text-sm font-semibold text-[#F87171] transition hover:bg-[rgba(248,113,113,0.15)]"
+              >
+                Log Out
+              </button>
+            </form>
+          </div>
+        </GlowCard>
+
+        <GlowCard className="p-8">
+          <p className="magic-tech-label text-xs text-[#A1A1AA]">SYNC CONNECTION</p>
+          <div className="mt-3 flex items-center gap-3">
+            <div className={`h-2.5 w-2.5 rounded-full ${isLive ? "bg-[#39FF14] shadow-[0_0_12px_#39FF14]" : "bg-[#71717A]"}`} />
+            <h2 className="text-2xl font-semibold tracking-[-0.04em] text-white">
+              {isLive ? "Sync is live" : "Demo mode"}
+            </h2>
+          </div>
+          <p className="mt-2 text-sm text-[#A1A1AA]">
+            Last synced {formatLastSynced(lastSyncedAt)}
+          </p>
+
+          <form action={syncAction} className="mt-6">
+            <input type="hidden" name="profileId" value={syncUserId ?? ""} />
+            <button
+              type="submit"
+              disabled={!syncUserId || isPending}
+              className="rounded-full bg-gradient-to-r from-[#4ADE80] to-[#22C55E] px-5 py-3 text-sm font-semibold text-[#08110B] shadow-[0_0_30px_rgba(74,222,128,0.18)] transition disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isPending ? "Analyzing your day..." : "Run manual sync"}
+            </button>
+            {syncState.message ? (
+              <p className={`mt-3 text-sm ${syncState.ok ? "text-[#4ADE80]" : "text-[#F87171]"}`}>
+                {syncState.message}
+              </p>
+            ) : null}
+          </form>
+        </GlowCard>
+      </div>
 
       <GlowCard className="col-span-12 p-8 lg:col-span-7">
         <p className="magic-tech-label text-xs text-[#A1A1AA]">RECENT HISTORY</p>
@@ -1087,6 +1129,7 @@ export function AppShell(data: DashboardData) {
             lastSyncedAt={data.lastSyncedAt}
             isLive={data.isLive}
             monthEntries={data.monthEntries}
+            profile={data.profile}
           />
         ) : null}
       </div>

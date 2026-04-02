@@ -251,7 +251,7 @@ export async function getDashboardData(): Promise<DashboardData> {
         fullName: authUser.user_metadata.full_name ?? authUser.email?.split("@")[0] ?? "You",
         role: "Team Member",
         team: "Finish setup",
-        leaderboardOptIn: false,
+        leaderboardOptIn: true,
         firstSwipeAt: null,
       },
       syncStatus: profileError?.message ?? "Finish setup to connect greytHR and go live.",
