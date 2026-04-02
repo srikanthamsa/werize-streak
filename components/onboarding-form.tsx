@@ -183,10 +183,7 @@ export function OnboardingForm({
               Streak Setup
             </p>
             <h1
-              className={`text-white ${isAuthenticated
-                ? "magic-display text-[44px] leading-[0.98] tracking-[-0.025em] sm:text-[56px]"
-                : "text-[38px] font-semibold leading-[1.02] tracking-[-0.035em] sm:text-[52px]"
-                }`}
+              className={`text-white text-[38px] font-semibold leading-[1.02] tracking-[-0.035em] sm:text-[52px]`}
             >
               {isAuthenticated ? (
                 "Turn on the magic once."
