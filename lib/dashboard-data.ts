@@ -49,11 +49,14 @@ type UserProfileRow = {
 };
 
 function toLocalDateKey(date = new Date()) {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
+  // Use IST (UTC+5:30) — server runs UTC but users are in India
+  const istDate = new Date(date.getTime() + 5.5 * 60 * 60 * 1000);
+  const year = istDate.getUTCFullYear();
+  const month = `${istDate.getUTCMonth() + 1}`.padStart(2, "0");
+  const day = `${istDate.getUTCDate()}`.padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
+
 
 function getStatusForDay(entry: AttendanceDay): AttendanceDay["status"] {
   if (entry.swipes.length === 0 || entry.swipes.length === 1) {
