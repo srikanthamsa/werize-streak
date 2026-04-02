@@ -288,40 +288,28 @@ export function OnboardingForm({
 
                   <div className="grid gap-4 sm:grid-cols-2">
                     <label className="block">
-                      <span className="mb-2 block text-sm font-semibold text-white">greytHR user ID</span>
-                      <input
-                        type="text"
-                        name="greythrUserId"
-                        required
-                        defaultValue={greythrUserId}
-                        placeholder="3527"
-                        className="w-full rounded-2xl bg-[#17171A] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[#71717A] focus:ring-1 focus:ring-[#7DFF31]"
-                      />
-                    </label>
-
-                    <label className="block">
-                      <span className="mb-2 block text-sm font-semibold text-white">greytHR username</span>
+                      <span className="mb-2 block text-sm font-semibold text-white">greytHR Employee ID</span>
                       <input
                         type="text"
                         name="greythrUsername"
                         required
                         defaultValue={greythrUsername}
-                        placeholder="Employee ID or greytHR username"
+                        placeholder="e.g. 03420"
+                        className="w-full rounded-2xl bg-[#17171A] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[#71717A] focus:ring-1 focus:ring-[#7DFF31]"
+                      />
+                    </label>
+
+                    <label className="block">
+                      <span className="mb-2 block text-sm font-semibold text-white">greytHR password</span>
+                      <input
+                        type="password"
+                        name="greythrPassword"
+                        required
+                        placeholder="••••••••"
                         className="w-full rounded-2xl bg-[#17171A] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[#71717A] focus:ring-1 focus:ring-[#7DFF31]"
                       />
                     </label>
                   </div>
-
-                  <label className="block">
-                    <span className="mb-2 block text-sm font-semibold text-white">greytHR password</span>
-                    <input
-                      type="password"
-                      name="greythrPassword"
-                      required
-                      placeholder="••••••••"
-                      className="w-full rounded-2xl bg-[#17171A] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[#71717A] focus:ring-1 focus:ring-[#7DFF31]"
-                    />
-                  </label>
 
                   <div className="rounded-[24px] bg-[#17171A] p-4">
                     <p className="text-sm font-semibold text-[#7DFF31]">Typed once. Encrypted immediately.</p>

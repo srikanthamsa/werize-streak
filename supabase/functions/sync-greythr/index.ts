@@ -596,6 +596,42 @@ async function finalizePortalSession(cookieJar: CookieJar) {
   return responseText;
 }
 
+async function discoverUserId(cookieJar: CookieJar, accessToken: string | null) {
+  const url = "https://wortgage.greythr.com/uas/v1/user/profile";
+  const authHeader: Record<string, string> = accessToken
+    ? { Authorization: `Bearer ${accessToken}` }
+    : {};
+
+  console.log(`[step5d] discovering userId from profile endpoint`);
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      ...buildBrowserHeaders({
+        Accept: "application/json, text/plain, */*",
+        Cookie: cookieJar.toHeader(),
+        "X-Requested-With": "XMLHttpRequest",
+        ...authHeader,
+      }),
+    },
+  });
+
+  if (response.ok) {
+    try {
+      const data = await response.json();
+      if (data.userId) {
+        console.log(`[step5d] discovered userId: ${data.userId}`);
+        return String(data.userId);
+      }
+    } catch {
+      console.log("[step5d] profile response was not JSON");
+    }
+  } else {
+    console.log(`[step5d] profile fetch failed with status ${response.status}`);
+  }
+
+  return null;
+}
+
 function buildSuccessResult(
   loginChallenge: string,
   encryptedPassword: string,
@@ -732,20 +768,25 @@ Deno.serve(async (request: Request) => {
 
     await finalizePortalSession(cookieJar);
 
+    let syncUserId = payload.greythrUserId;
+    if (!syncUserId) {
+      syncUserId = (await discoverUserId(cookieJar, accessToken)) ?? undefined;
+    }
+
     let swipeRequest: LoginResult["swipeRequest"];
     let swipeResponse: unknown;
 
-    if (payload.greythrUserId) {
-      const swipeResult = await fetchSwipeData(cookieJar, payload.greythrUserId, accessToken);
+    if (syncUserId) {
+      const swipeResult = await fetchSwipeData(cookieJar, syncUserId, accessToken);
       swipeRequest = {
-        greythrUserId: payload.greythrUserId,
+        greythrUserId: syncUserId,
         startDate: swipeResult.startDate,
         url: swipeResult.url,
       };
       swipeResponse = swipeResult.swipeResponse;
       console.log("[step6] swipe data fetched successfully");
     } else {
-      console.log("[step6] skipped because greythrUserId was not provided");
+      console.log("[step6] skipped because greythrUserId was neither provided nor discovered");
     }
 
     return Response.json(
