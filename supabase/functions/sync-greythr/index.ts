@@ -381,7 +381,7 @@ async function executeLogin(
 
   cookieJar.absorb(response.headers);
   const responseText = await response.text();
-  console.log(`[step4] status=${response.status} redirect=${response.headers.get("location") ?? "none"}`);
+  console.log(`[step4] status=${response.status} redirect=${response.headers.get("location") ?? "none"} cookies=${Object.keys(cookieJar.toObject()).join(",")}`);
 
   let responseJson: Record<string, unknown> | null = null;
   try {
@@ -517,8 +517,15 @@ async function bootstrapLatteSession(cookieJar: CookieJar, accessToken: string |
   });
 
   cookieJar.absorb(response.headers);
-  await response.text(); // consume body
+  const bodyText = await response.text();
   console.log(`[step6] latte bootstrap status=${response.status}`);
+
+  if (response.ok) {
+    try {
+      return JSON.parse(bodyText) as Record<string, unknown>;
+    } catch { /* not JSON */ }
+  }
+  return null;
 }
 
 async function fetchSwipeData(cookieJar: CookieJar, greythrUserId: string, accessToken: string | null, discoveryDebug: string) {
@@ -585,8 +592,9 @@ async function finalizePortalSession(cookieJar: CookieJar) {
 
   cookieJar.absorb(response.headers);
   const responseText = await response.text();
+  const themeLocation = response.headers.get("location");
   console.log(
-    `[step5] theme status=${response.status} location=${response.headers.get("location") ?? "none"} cookies=${Object.keys(cookieJar.toObject()).join(",")}`,
+    `[step5] theme status=${response.status} location=${themeLocation ?? "none"} cookies=${Object.keys(cookieJar.toObject()).join(",")}`,
   );
 
   // 302 is acceptable — the session is established and the theme may redirect to the portal
@@ -594,6 +602,26 @@ async function finalizePortalSession(cookieJar: CookieJar) {
     throw new Error(
       `[step5] theme bootstrap failed (${response.status}): ${previewResponseBody(responseText)}`,
     );
+  }
+
+  // Follow the portal redirect so the Java backend can establish a UAS session (sets JSESSIONID)
+  if (themeLocation) {
+    const portalUrl = new URL(themeLocation, ORIGIN).toString();
+    console.log(`[step5] following theme redirect to ${portalUrl}`);
+    const portalResponse = await fetch(portalUrl, {
+      method: "GET",
+      headers: {
+        ...buildBrowserHeaders({
+          Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          Cookie: cookieJar.toHeader(),
+          Referer: THEME_URL,
+        }),
+      },
+      redirect: "manual",
+    });
+    cookieJar.absorb(portalResponse.headers);
+    await portalResponse.text();
+    console.log(`[step5] portal redirect status=${portalResponse.status} cookies=${Object.keys(cookieJar.toObject()).join(",")}`);
   }
 
   return responseText;
@@ -623,7 +651,139 @@ async function discoverUserId(cookieJar: CookieJar, accessToken: string | null, 
     }
   }
   
-  // Method 2: Scrape the HTML of the main portal page
+  // Method 2: Ory Hydra userinfo endpoint — try both common paths
+  if (accessToken) {
+    for (const userinfoPath of ["/userinfo", "/oauth2/userinfo"]) {
+      try {
+        const userinfoResponse = await fetch(`${DEFAULT_HYDRA_URL}${userinfoPath}`, {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+        if (userinfoResponse.ok) {
+          try {
+            const userinfo = await userinfoResponse.json() as Record<string, unknown>;
+            console.log(`[step5d] userinfo(${userinfoPath}) keys: ${Object.keys(userinfo).join(",")}`);
+            // Only use explicit employee ID fields — sub is an Ory-internal identifier, not the GreytHR employeeId
+            const empId = userinfo.employeeId ?? userinfo.employee_id ?? userinfo.empId;
+            console.log(`[step5d] userinfo sub=${userinfo.sub} empId=${empId ?? "none"}`);
+            if (empId) {
+              console.log(`[step5d] discovered id from userinfo: ${empId}`);
+              return { id: String(empId), debug: `${debug} | userinfo:found` };
+            }
+            debug += ` | userinfo:no_empid(sub=${userinfo.sub})`;
+          } catch {
+            debug += ` | userinfo${userinfoPath}:not_json`;
+          }
+          break; // got a 2xx, don't try next path
+        } else {
+          debug += ` | userinfo${userinfoPath}_err:${userinfoResponse.status}`;
+        }
+      } catch (e: any) {
+        debug += ` | userinfo_fetch_err:${e.message}`;
+      }
+    }
+  }
+
+  // Method 3: Call the latte period/current endpoint — already used for session bootstrap,
+  // and its response contains the employeeId for the authenticated user.
+  try {
+    const latteData = await bootstrapLatteSession(cookieJar, accessToken);
+    if (latteData) {
+      const empId = latteData.employeeId ?? latteData.userId ?? latteData.id;
+      if (empId) {
+        console.log(`[step5d] discovered employeeId from latte bootstrap: ${empId}`);
+        return { id: String(empId), debug: `${debug} | latte:found` };
+      }
+      debug += ` | latte:no_id(keys:[${Object.keys(latteData).join(",")}])`;
+    } else {
+      debug += " | latte:null";
+    }
+  } catch (e: any) {
+    debug += ` | latte_err:${e.message}`;
+  }
+
+  // Method 4: UAS profile endpoint — log body preview so we can diagnose what it returns
+  try {
+    const profileAuthHeader: Record<string, string> = accessToken
+      ? { Authorization: `Bearer ${accessToken}` }
+      : {};
+    const profileResponse = await fetch(`${ORIGIN}/uas/v1/user/profile`, {
+      method: "GET",
+      headers: {
+        ...buildBrowserHeaders({
+          Accept: "application/json, text/plain, */*",
+          Cookie: cookieJar.toHeader(),
+          "X-Requested-With": "XMLHttpRequest",
+          ...profileAuthHeader,
+        }),
+      },
+    });
+    const profileText = await profileResponse.text();
+    console.log(`[step5d] profile status=${profileResponse.status} body=${profileText.slice(0, 150)}`);
+    if (profileResponse.ok) {
+      try {
+        const profileData = JSON.parse(profileText) as Record<string, unknown>;
+        const empId = profileData.userId ?? profileData.employeeId ?? profileData.id;
+        if (empId) {
+          console.log(`[step5d] discovered id from profile: ${empId}`);
+          return { id: String(empId), debug: `${debug} | profile:found` };
+        }
+        debug += ` | profile:no_id(keys:[${Object.keys(profileData).join(",")}])`;
+      } catch {
+        debug += ` | profile:not_json(${profileResponse.status})`;
+      }
+    } else {
+      debug += ` | profile_err:${profileResponse.status}`;
+    }
+  } catch (e: any) {
+    debug += ` | profile_fetch_err:${e.message}`;
+  }
+
+  // Method 5: Try latte endpoints that may return current user's employeeId
+  for (const path of [
+    "/latte/v3/attendance/info/me",
+    "/latte/v3/attendance/info",
+    "/latte/v3/employee",
+    "/latte/v3/employee/info",
+  ]) {
+    try {
+      const r = await fetch(`${ORIGIN}${path}`, {
+        method: "GET",
+        headers: {
+          ...buildBrowserHeaders({
+            Accept: "application/json, text/plain, */*",
+            Cookie: cookieJar.toHeader(),
+            "X-Requested-With": "XMLHttpRequest",
+            ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+          }),
+        },
+      });
+      const t = await r.text();
+      console.log(`[step5d] latte${path} status=${r.status} body=${t.slice(0, 200)}`);
+      if (r.ok) {
+        try {
+          const data = JSON.parse(t) as Record<string, unknown>;
+          const empId = data.employeeId ?? data.id ?? data.userId;
+          if (empId && String(empId).match(/^\d+$/)) {
+            console.log(`[step5d] discovered id from latte${path}: ${empId}`);
+            return { id: String(empId), debug: `${debug} | latte_path:found` };
+          }
+          debug += ` | latte${path}:no_id(keys:[${Object.keys(data).join(",")}])`;
+        } catch {
+          debug += ` | latte${path}:not_json`;
+        }
+      } else {
+        debug += ` | latte${path}_err:${r.status}`;
+      }
+    } catch (e: any) {
+      debug += ` | latte${path}_fetch_err:${e.message}`;
+    }
+  }
+
+  // Method 6: Scrape the HTML of the main portal page
   try {
     const htmlResponse = await fetch("https://wortgage.greythr.com/v3/portal/ess/home", {
       headers: {
@@ -633,17 +793,17 @@ async function discoverUserId(cookieJar: CookieJar, accessToken: string | null, 
     });
     if (htmlResponse.ok) {
       const htmlText = await htmlResponse.text();
-      // Look for something like "userId":"e60bc21b-db93-4a0b-8d6b-df81a5a0bd77" or 'userId': '...'
-      const match = htmlText.match(/["']?userId["']?\s*:\s*["']([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})["']/i);
-      if (match && match[1]) {
-        console.log(`[step5d] discovered userId from HTML Regex: ${match[1]}`);
-        return { id: match[1], debug: `${debug} | html:found` };
+      // Look for employeeId as a number: "employeeId":3527 or 'employeeId': 3527
+      const empIdMatch = htmlText.match(/["']?employeeId["']?\s*:\s*(\d+)/i);
+      if (empIdMatch && empIdMatch[1]) {
+        console.log(`[step5d] discovered employeeId from HTML: ${empIdMatch[1]}`);
+        return { id: empIdMatch[1], debug: `${debug} | html_empid:found` };
       }
-      
-      // Secondary fallback regex for any UUID near "empId" or similar
-      const uuidMatch = htmlText.match(/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i);
+
+      // Look for userId as a UUID: "userId":"e60bc21b-..."
+      const uuidMatch = htmlText.match(/["']?userId["']?\s*:\s*["']([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})["']/i);
       if (uuidMatch && uuidMatch[1]) {
-        console.log(`[step5d] discovered generic UUID from HTML Regex: ${uuidMatch[1]}`);
+        console.log(`[step5d] discovered userId UUID from HTML: ${uuidMatch[1]}`);
         return { id: uuidMatch[1], debug: `${debug} | html_uuid:found` };
       }
       
@@ -655,8 +815,10 @@ async function discoverUserId(cookieJar: CookieJar, accessToken: string | null, 
     debug += ` | html_fetch_err:${e.message}`;
   }
 
-  console.log(`[step5d] falling back to userName for userId`);
-  return { id: userName, debug };
+  throw new Error(
+    `[step5d] userId discovery failed — all methods exhausted (dbg: ${debug}). ` +
+    `Please set your GreytHR User ID manually in settings.`,
+  );
 }
 
 function buildSuccessResult(
@@ -782,7 +944,7 @@ Deno.serve(async (request: Request) => {
         });
         cookieJar.absorb(tokenResponse.headers);
         const tokenBody = await tokenResponse.text();
-        console.log(`[step5c] token exchange status=${tokenResponse.status}`);
+        console.log(`[step5c] token exchange status=${tokenResponse.status} cookies=${Object.keys(cookieJar.toObject()).join(",")}`);
         const cookieObj = cookieJar.toObject();
         if (cookieObj["access_token"]) {
           accessToken = cookieObj["access_token"];
@@ -791,6 +953,39 @@ Deno.serve(async (request: Request) => {
             const tokenJson = JSON.parse(tokenBody) as Record<string, unknown>;
             if (typeof tokenJson.access_token === "string") accessToken = tokenJson.access_token;
           } catch { /* not JSON */ }
+        }
+        // Log token body keys and follow targetUrl so we can see what fields are available
+        let tokenTargetUrl: string | null = null;
+        try {
+          const tokenJson = JSON.parse(tokenBody) as Record<string, unknown>;
+          console.log(`[step5c] token body keys: ${Object.keys(tokenJson).join(",")}`);
+          console.log(`[step5c] token targetUrl=${tokenJson.targetUrl} domain=${tokenJson.domain}`);
+          if (typeof tokenJson.targetUrl === "string") tokenTargetUrl = tokenJson.targetUrl;
+        } catch {
+          console.log(`[step5c] token body preview: ${tokenBody.slice(0, 120)}`);
+        }
+
+        // Follow the targetUrl — this is what the SPA navigates to after receiving the token.
+        // Following it server-side may establish JSESSIONID or reveal user context.
+        if (tokenTargetUrl) {
+          try {
+            const resolvedTarget = new URL(tokenTargetUrl, ORIGIN).toString();
+            console.log(`[step5c] following targetUrl: ${resolvedTarget}`);
+            const targetResp = await fetch(resolvedTarget, {
+              method: "GET",
+              headers: buildBrowserHeaders({
+                Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                Cookie: cookieJar.toHeader(),
+                Referer: `${ORIGIN}/uas/portal/auth/redirect-callback`,
+              }),
+              redirect: "manual",
+            });
+            cookieJar.absorb(targetResp.headers);
+            await targetResp.text();
+            console.log(`[step5c] targetUrl response: status=${targetResp.status} location=${targetResp.headers.get("location")} cookies=${Object.keys(cookieJar.toObject()).join(",")}`);
+          } catch (e: any) {
+            console.log(`[step5c] targetUrl follow error: ${e.message}`);
+          }
         }
       }
     }
@@ -808,18 +1003,14 @@ Deno.serve(async (request: Request) => {
     let swipeRequest: LoginResult["swipeRequest"];
     let swipeResponse: unknown;
 
-    if (syncUserId) {
-      const swipeResult = await fetchSwipeData(cookieJar, syncUserId, accessToken, discoveryDebug);
-      swipeRequest = {
-        greythrUserId: syncUserId,
-        startDate: swipeResult.startDate,
-        url: swipeResult.url,
-      };
-      swipeResponse = swipeResult.swipeResponse;
-      console.log("[step6] swipe data fetched successfully");
-    } else {
-      console.log("[step6] skipped because greythrUserId was neither provided nor discovered");
-    }
+    const swipeResult = await fetchSwipeData(cookieJar, syncUserId, accessToken, discoveryDebug);
+    swipeRequest = {
+      greythrUserId: syncUserId,
+      startDate: swipeResult.startDate,
+      url: swipeResult.url,
+    };
+    swipeResponse = swipeResult.swipeResponse;
+    console.log("[step6] swipe data fetched successfully");
 
     return Response.json(
       buildSuccessResult(
@@ -831,7 +1022,7 @@ Deno.serve(async (request: Request) => {
         previewResponseBody(responseText),
         swipeRequest,
         swipeResponse,
-        `${syncUserId} | dbg: ${discoveryDebug}`,
+        syncUserId,
       ),
       {
         status: response.ok ? 200 : 401,

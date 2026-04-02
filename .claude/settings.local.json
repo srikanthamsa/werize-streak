@@ -8,7 +8,15 @@
       "Bash(curl -s \"https://wortgage.greythr.com/uas/v1/session-config\" -H \"Accept: application/json\" -H \"User-Agent: Mozilla/5.0\")",
       "Bash(curl -s https://wortgage.greythr.com/uas/v1/session-config -H 'Accept: application/json' -H 'User-Agent: Mozilla/5.0')",
       "Bash(curl -s \"https://goth-coral.greythr.com/.well-known/jwks.json\")",
-      "mcp__Claude_Preview__preview_start"
+      "mcp__Claude_Preview__preview_start",
+      "Bash(grep -r ACCESS.DENIED /Users/srikanthamsa/dev/logout --include=*.ts --include=*.tsx --include=*.js)",
+      "Bash(npx supabase:*)",
+      "Read(//Users/srikanthamsa/.supabase/**)",
+      "Read(//usr/local/bin/**)",
+      "Read(//Users/srikanthamsa/**)",
+      "Bash(zsh -i -c \"which supabase\")",
+      "Bash(bash -i -c \"which supabase\")",
+      "Bash(/opt/homebrew/bin/supabase functions:*)"
     ]
   }
 }
