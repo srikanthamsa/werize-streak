@@ -298,9 +298,10 @@ function TodayView(data: DashboardData) {
     ? Math.round(data.monthSummary.actualMinutesToDate / data.monthSummary.workingDaysElapsed)
     : 0;
   const currentAverage = formatMinutes(currentAverageMinutes);
-  const progressWidth = Math.max(14, Math.min(
+  const totalMonthlyMinutes = data.monthSummary.totalWorkingDays * DAILY_TARGET_MINUTES;
+  const progressWidth = Math.max(0, Math.min(
     100,
-    Math.round((calculateWorkedMinutes(data.todayEntry.swipes) / Math.max(1, DAILY_TARGET_MINUTES)) * 100),
+    Math.round((data.monthSummary.actualMinutesToDate / Math.max(1, totalMonthlyMinutes)) * 100),
   ));
   const hasStartedToday = data.todayEntry.swipes.length > 0;
   const minimumViable = data.profile.firstSwipeAt
@@ -372,8 +373,8 @@ function TodayView(data: DashboardData) {
 
         <div className="mt-8">
           <div className="magic-tech-label mb-2 flex justify-between text-[11px] text-[#71717A]">
-            <span>current average</span>
-            <span>{currentAverage}/day</span>
+            <span>month progress</span>
+            <span>{formatMinutes(data.monthSummary.actualMinutesToDate)} / {formatMinutes(totalMonthlyMinutes)}</span>
           </div>
 
           <div className="magic-progress-track h-2 w-full overflow-hidden rounded-full">
