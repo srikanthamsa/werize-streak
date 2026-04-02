@@ -190,11 +190,13 @@ function previewResponseBody(body: string) {
   return body.length > 700 ? `${body.slice(0, 700)}...` : body;
 }
 
-function getCurrentMonthStartDate() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = `${now.getMonth() + 1}`.padStart(2, "0");
-  return `${year}-${month}-01`;
+function getSyncStartDate() {
+  const date = new Date();
+  date.setDate(date.getDate() - 45);
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 
@@ -524,7 +526,7 @@ async function fetchSwipeData(cookieJar: CookieJar, greythrUserId: string, acces
     ? { Authorization: `Bearer ${accessToken}` }
     : {};
 
-  const startDate = getCurrentMonthStartDate();
+  const startDate = getSyncStartDate();
   const url = new URL(`${SWIPES_URL_BASE}/${encodeURIComponent(greythrUserId)}/swipes`);
   url.searchParams.set("startDate", startDate);
   url.searchParams.set("endDate", "");
