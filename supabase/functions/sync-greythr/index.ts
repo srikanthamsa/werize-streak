@@ -667,7 +667,10 @@ async function discoverUserId(cookieJar: CookieJar, accessToken: string | null, 
             const userinfo = await userinfoResponse.json() as Record<string, unknown>;
             console.log(`[step5d] userinfo(${userinfoPath}) keys: ${Object.keys(userinfo).join(",")}`);
             // Only use explicit employee ID fields — sub is an Ory-internal identifier, not the GreytHR employeeId
-            const empId = userinfo.employeeId ?? userinfo.employee_id ?? userinfo.empId;
+            // However, it appears GreytHR often structures the sub as {uuid}::{employeeId}. We fall back to parsing it.
+            const subParts = typeof userinfo.sub === "string" ? userinfo.sub.split("::") : [];
+            const subEmpId = subParts.length === 2 && /^\d+$/.test(subParts[1]) ? subParts[1] : undefined;
+            const empId = userinfo.employeeId ?? userinfo.employee_id ?? userinfo.empId ?? subEmpId;
             console.log(`[step5d] userinfo sub=${userinfo.sub} empId=${empId ?? "none"}`);
             if (empId) {
               console.log(`[step5d] discovered id from userinfo: ${empId}`);
