@@ -114,9 +114,9 @@ begin
     p_leaderboard_opt_in,
     now()
   )
-  on conflict (auth_user_id) do update
+  on conflict (email) do update
   set
-    email = excluded.email,
+    auth_user_id = excluded.auth_user_id,
     full_name = excluded.full_name,
     team = excluded.team,
     role = excluded.role,

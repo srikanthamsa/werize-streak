@@ -35,15 +35,14 @@ export async function saveCredentialsAction(
     const fullName = String(formData.get("fullName") ?? "").trim();
     const team = String(formData.get("team") ?? "").trim();
     const role = String(formData.get("role") ?? "").trim();
-    const greythrUserId = String(formData.get("greythrUserId") ?? "").trim();
     const greythrUsername = String(formData.get("greythrUsername") ?? "").trim();
     const greythrPassword = String(formData.get("greythrPassword") ?? "");
     const leaderboardOptIn = formData.get("leaderboardOptIn") === "on";
 
-    if (!fullName || !team || !greythrUserId || !greythrUsername || !greythrPassword) {
+    if (!fullName || !team || !greythrUsername || !greythrPassword) {
       return {
         ok: false,
-        message: "Fill in your name, team, greytHR user ID, username, and password.",
+        message: "Fill in your name, team, greytHR employee ID, and password.",
       };
     }
 
@@ -54,7 +53,7 @@ export async function saveCredentialsAction(
       p_full_name: fullName,
       p_team: team,
       p_role: role || null,
-      p_greythr_user_id: greythrUserId,
+      p_greythr_user_id: "",
       p_greythr_username: greythrUsername,
       p_greythr_password: greythrPassword,
       p_encryption_key: encryptionKey,
