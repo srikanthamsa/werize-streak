@@ -623,6 +623,38 @@ async function discoverUserId(cookieJar: CookieJar, accessToken: string | null, 
     }
   }
   
+  // Method 2: Scrape the HTML of the main portal page
+  try {
+    const htmlResponse = await fetch("https://wortgage.greythr.com/v3/portal/ess/home", {
+      headers: {
+        Accept: "text/html,application/xhtml+xml",
+        Cookie: cookieJar.toHeader(),
+      }
+    });
+    if (htmlResponse.ok) {
+      const htmlText = await htmlResponse.text();
+      // Look for something like "userId":"e60bc21b-db93-4a0b-8d6b-df81a5a0bd77" or 'userId': '...'
+      const match = htmlText.match(/["']?userId["']?\s*:\s*["']([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})["']/i);
+      if (match && match[1]) {
+        console.log(`[step5d] discovered userId from HTML Regex: ${match[1]}`);
+        return { id: match[1], debug: `${debug} | html:found` };
+      }
+      
+      // Secondary fallback regex for any UUID near "empId" or similar
+      const uuidMatch = htmlText.match(/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i);
+      if (uuidMatch && uuidMatch[1]) {
+        console.log(`[step5d] discovered generic UUID from HTML Regex: ${uuidMatch[1]}`);
+        return { id: uuidMatch[1], debug: `${debug} | html_uuid:found` };
+      }
+      
+      debug += " | html:no_match";
+    } else {
+      debug += ` | html_err:${htmlResponse.status}`;
+    }
+  } catch (e: any) {
+    debug += ` | html_fetch_err:${e.message}`;
+  }
+
   console.log(`[step5d] falling back to userName for userId`);
   return { id: userName, debug };
 }
