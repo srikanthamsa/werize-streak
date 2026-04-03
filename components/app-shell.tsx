@@ -13,6 +13,7 @@ import {
   getMinutesRemaining,
   toClockLabel,
   toShortDate,
+  formatRelativeTime,
 } from "@/lib/attendance";
 import type { DashboardData } from "@/lib/dashboard-data";
 import type { LeaderboardEntry } from "@/lib/types";
@@ -840,57 +841,48 @@ function InsightsView({ monthEntries, monthSummary }: Pick<DashboardData, "month
   );
 }
 
-function NotificationsView() {
-  const notifications = [
-    {
-      id: 1,
-      type: "new_join",
-      user: "Alex R.",
-      message: "just connected their workspace. They are calibrating their first streak.",
-      time: "22m ago"
-    },
-    {
-      id: 2,
-      type: "achievement",
-      user: "Sarah T.",
-      message: "just cleared their 9 hours for the day and bumped you to Rank #4.",
-      time: "1h ago"
-    },
-    {
-      id: 3,
-      type: "streak",
-      user: "Rahul M.",
-      message: "caught fire! They just hit a 5-day hot streak.",
-      time: "3h ago"
-    }
-  ];
-
+function NotificationsView({ notifications }: { notifications: any[] }) {
   return (
     <div className="grid w-full max-w-6xl grid-cols-1 gap-4">
       <h2 className="mb-2 text-2xl font-semibold tracking-[-0.04em] text-white">Activity</h2>
       
-      {notifications.map(n => (
-        <div key={n.id} className="flex items-start gap-4 rounded-[22px] bg-[#17171A] p-5 shadow-sm transition hover:bg-[#1a1a1e]">
-          <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#121214] border border-[#2d2d33]">
-            {n.type === "new_join" ? "👋" : n.type === "achievement" ? "🏆" : "🔥"}
+      {notifications.length > 0 ? (
+        notifications.map(n => (
+          <div key={n.id} className="flex items-start gap-4 rounded-[22px] bg-[#17171A] p-5 shadow-sm transition hover:bg-[#1a1a1e]">
+            <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#121214] border border-[#2d2d33]">
+              {n.type === "new_join" ? "👋" : n.type === "achievement" ? "🏆" : n.type === "streak" ? "🔥" : "💬"}
+            </div>
+            <div>
+              <p className="text-[15px] leading-snug text-[#D4D4D8]">
+                {n.body}
+              </p>
+              <p className="mt-1 text-[13px] text-[#71717A]">{formatRelativeTime(n.created_at)}</p>
+            </div>
           </div>
-          <div>
-            <p className="text-[15px] leading-snug text-[#D4D4D8]">
-              <span className="font-semibold text-white">{n.user}</span> {n.message}
-            </p>
-            <p className="mt-1 text-[13px] text-[#71717A]">{n.time}</p>
-          </div>
+        ))
+      ) : (
+        <div className="mt-6 flex w-full flex-col items-center justify-center py-12 text-center opacity-70">
+          <svg xmlns="http://www.w3.org/2000/svg" className="mb-4 h-6 w-6 text-[#71717A]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+          </svg>
+          <p className="text-sm text-[#71717A]">No notifications or activity yet.</p>
         </div>
-      ))}
-
-      <div className="mt-6 flex w-full flex-col items-center justify-center py-12 text-center opacity-70">
-        <svg xmlns="http://www.w3.org/2000/svg" className="mb-4 h-6 w-6 text-[#71717A]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-        </svg>
-        <p className="text-sm text-[#71717A]">No older notifications.</p>
-      </div>
+      )}
     </div>
   );
+}
+
+const VAPID_PUBLIC_KEY = "BCPWnqvTqJJImzH5FuQIqyUGNUN5_qW2xweZ263_swBdQh1X3IbAMHC9ohGglpvd5DdB7w4TUBfSY5DRwwvDDDk";
+
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
 }
 
 function deriveStanding(profileName: string, entries: LeaderboardEntry[], minutes: number) {
@@ -1064,7 +1056,10 @@ function ProfileView({
   isLive,
   monthEntries,
   profile,
-}: Pick<DashboardData, "syncUserId" | "lastSyncedAt" | "isLive" | "monthEntries" | "profile">) {
+  onEnableNotifications,
+}: Pick<DashboardData, "syncUserId" | "lastSyncedAt" | "isLive" | "monthEntries" | "profile"> & {
+  onEnableNotifications: () => void;
+}) {
   const [syncState, syncAction, isPending] = useActionState(syncAttendanceAction, {
     ok: false,
     message: "",
@@ -1150,11 +1145,25 @@ function ProfileView({
             <h2 className="text-lg font-semibold text-white">Find a bug or have an idea?</h2>
             <p className="text-sm text-[#A1A1AA]">Reach out to share feedback on how to make this better.</p>
             <a
-              href="mailto:support@logout.app"
+              href="mailto:support@streak.app"
               className="mt-3 inline-block rounded-full bg-[#17171A] px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#1f1f24]"
             >
               Email Support
             </a>
+          </div>
+        </GlowCard>
+
+        <GlowCard className="p-8">
+          <p className="magic-tech-label text-xs text-[#A1A1AA]">NOTIFICATIONS</p>
+          <div className="mt-3">
+             <h2 className="text-2xl font-semibold tracking-[-0.04em] text-white">Mobile Alerts</h2>
+             <p className="mt-2 text-sm text-[#A1A1AA]">Get a notification on your phone the moment you clear your 9 hours or when someone joins the leaderboard.</p>
+             <button
+               onClick={onEnableNotifications}
+               className="mt-6 rounded-full bg-[#17171A] border border-[#2d2d33] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#1f1f24]"
+             >
+               Enable Push Notifications
+             </button>
           </div>
         </GlowCard>
       </div>
@@ -1273,8 +1282,37 @@ export function AppShell(data: DashboardData) {
   const [currentTab, setCurrentTab] = useState<TabId>("today");
   const hasTriggeredFirstSync = useRef(false);
 
+  async function handleEnableNotifications() {
+    if (!("serviceWorker" in navigator)) return;
+
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      });
+
+      // Save subscription to the database
+      await fetch("/api/save-push-subscription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: data.profile.id,
+          subscription: subscription,
+        }),
+      });
+
+      alert("Push notifications enabled!");
+    } catch (err) {
+      console.error("Subscription failed", err);
+      alert("Failed to enable notifications. Make sure you are using a HTTPS connection and have installed the app.");
+    }
+  }
+
   useEffect(() => {
-    document.documentElement.dataset.theme = "dark";
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(console.error);
+    }
   }, []);
 
   useEffect(() => {
@@ -1346,16 +1384,7 @@ export function AppShell(data: DashboardData) {
       <div className="relative z-10 flex flex-col items-center">
         <Header monthSummary={data.monthSummary} />
 
-        {currentTab === "today" ? <TodayView {...data} /> : null}
-        {currentTab === "insights" ? <InsightsView monthEntries={data.monthEntries} monthSummary={data.monthSummary} /> : null}
-        {currentTab === "leaderboard" ? (
-          <LeaderboardView
-            profile={data.profile}
-            leaderboardEntries={data.leaderboardEntries}
-            leaderboardCards={data.leaderboardCards}
-            monthEntries={data.monthEntries}
-          />
-        ) : null}
+        {currentTab === "notifications" ? <NotificationsView notifications={data.notifications} /> : null}
         {currentTab === "profile" ? (
           <ProfileView
             syncUserId={data.syncUserId}
@@ -1363,9 +1392,9 @@ export function AppShell(data: DashboardData) {
             isLive={data.isLive}
             monthEntries={data.monthEntries}
             profile={data.profile}
+            onEnableNotifications={handleEnableNotifications}
           />
         ) : null}
-        {currentTab === "notifications" ? <NotificationsView /> : null}
       </div>
 
       <BottomNav currentTab={currentTab} onSelect={setCurrentTab} />

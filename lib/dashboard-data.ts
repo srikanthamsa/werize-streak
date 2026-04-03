@@ -25,6 +25,7 @@ export type DashboardData = {
   syncStatus: string;
   lastSyncedAt: string | null;
   streak: StreakData;
+  notifications: any[];
 };
 
 type AttendanceRow = {
@@ -195,6 +196,7 @@ function createEmptyDashboardData({
     syncStatus,
     lastSyncedAt: lastSyncedAt ?? null,
     streak: calculateStreakData(monthEntries),
+    notifications: [],
   };
 }
 
@@ -340,6 +342,13 @@ export async function getDashboardData(): Promise<DashboardData> {
     });
   }
 
+  const { data: notificationRows, error: notificationError } = await supabase
+    .from("notifications")
+    .select("*")
+    .eq("user_id", profileRow.id)
+    .order("created_at", { ascending: false })
+    .limit(20);
+
   return {
     profile: derivedProfile,
     todayEntry: todayEntryLive,
@@ -357,5 +366,6 @@ export async function getDashboardData(): Promise<DashboardData> {
       : "Connection is live. Run your first sync to pull biometric swipes.",
     lastSyncedAt: lastSyncRow?.synced_at ?? null,
     streak,
+    notifications: notificationRows ?? [],
   };
 }
