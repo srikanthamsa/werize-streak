@@ -320,18 +320,20 @@ function CenterModal({
         onClick={onClose}
         className="absolute inset-0 bg-[rgba(0,0,0,0.72)] backdrop-blur-sm"
       />
-      <div className="magic-panel relative z-10 w-full max-w-md rounded-[28px] p-6">
-        <div className="mb-5 flex items-center justify-between gap-4">
-          <p className="magic-tech-label text-xs text-[#A1A1AA]">{title}</p>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-full bg-[#17171A] px-3 py-1 text-sm text-[#A1A1AA] transition hover:text-white"
-          >
-            Close
-          </button>
+      <div className="magic-panel relative z-10 w-full max-w-md overflow-hidden rounded-[28px]">
+        <div className="max-h-[80vh] overflow-y-auto p-6 scrollbar-hide">
+          <div className="mb-5 flex items-center justify-between gap-4">
+            <p className="magic-tech-label text-xs text-[#A1A1AA]">{title}</p>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-full bg-[#17171A] px-3 py-1 text-sm text-[#A1A1AA] transition hover:text-white"
+            >
+              Close
+            </button>
+          </div>
+          {children}
         </div>
-        {children}
       </div>
     </div>
   );

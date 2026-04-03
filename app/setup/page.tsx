@@ -28,7 +28,7 @@ export default async function SetupPage({
       team={data.profile.team}
       role={data.profile.role}
       greythrUserId=""
-      greythrUsername=""
+      greythrUsername={data.profile.greythrUsername ?? ""}
       leaderboardOptIn={data.profile.leaderboardOptIn}
       isLive={data.isLive}
       lastSyncedAt={data.lastSyncedAt}

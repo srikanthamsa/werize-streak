@@ -17,6 +17,7 @@ export type UserProfile = {
   team: string;
   leaderboardOptIn: boolean;
   firstSwipeAt: string | null;
+  greythrUsername?: string | null;
 };
 
 export type LeaderboardEntry = {

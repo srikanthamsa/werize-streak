@@ -329,6 +329,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     team: profileRow.team,
     leaderboardOptIn: profileRow.leaderboard_opt_in,
     firstSwipeAt: todayEntryLive.swipes[0] ?? null,
+    greythrUsername: profileRow.greythr_username ?? null,
   };
 
   const workingDays = getWorkingDaysInMonth();

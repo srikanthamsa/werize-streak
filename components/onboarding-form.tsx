@@ -271,6 +271,7 @@ export function OnboardingForm({
                       type="text"
                       name="fullName"
                       required
+                      defaultValue={profileName}
                       placeholder="Enter your name"
                       className="w-full rounded-2xl bg-[#17171A] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[#71717A] focus:ring-1 focus:ring-[#7DFF31]"
                     />
@@ -283,6 +284,7 @@ export function OnboardingForm({
                         type="text"
                         name="team"
                         required
+                        defaultValue={team}
                         placeholder="e.g. Product Team"
                         className="w-full rounded-2xl bg-[#17171A] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[#71717A] focus:ring-1 focus:ring-[#7DFF31]"
                       />
@@ -293,6 +295,7 @@ export function OnboardingForm({
                       <input
                         type="text"
                         name="role"
+                        defaultValue={role}
                         placeholder="e.g. Product Analyst"
                         className="w-full rounded-2xl bg-[#17171A] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[#71717A] focus:ring-1 focus:ring-[#7DFF31]"
                       />
@@ -314,13 +317,21 @@ export function OnboardingForm({
 
                     <label className="block">
                       <span className="mb-2 block text-sm font-semibold text-white">greytHR password</span>
-                      <input
-                        type="password"
-                        name="greythrPassword"
-                        required
-                        placeholder="••••••••"
-                        className="w-full rounded-2xl bg-[#17171A] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[#71717A] focus:ring-1 focus:ring-[#7DFF31]"
-                      />
+                      <div className="relative">
+                        <input
+                          type="password"
+                          name="greythrPassword"
+                          required={!isLive}
+                          placeholder={isLive ? "••••••••" : "Your password"}
+                          className="w-full rounded-2xl bg-[#17171A] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[#71717A] focus:ring-1 focus:ring-[#7DFF31]"
+                        />
+                        {isLive ? (
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 px-3 py-1 rounded-full bg-[rgba(57,255,20,0.1)] border border-[rgba(57,255,20,0.2)]">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="size-3 text-[#39FF14]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                            <span className="text-[10px] font-bold text-[#39FF14] uppercase tracking-wider">Secure</span>
+                          </div>
+                        ) : null}
+                      </div>
                     </label>
                   </div>
 
@@ -341,7 +352,7 @@ export function OnboardingForm({
                     <span>
                       <span className="block text-sm font-semibold text-white">Appear on the company board</span>
                       <span className="mt-1 block text-sm leading-6 text-[#A1A1AA]">
-                        Private by default. Switch this on only if you want to show up in company-wide comparisons.
+                        This is on by default: Private by default. Switch this on only if you want to show up in company-wide comparisons.
                       </span>
                     </span>
                   </label>
