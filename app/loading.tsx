@@ -2,9 +2,18 @@ import Image from "next/image";
 
 export default function Loading() {
   return (
-    <div className="flex min-h-[100dvh] w-full flex-col items-center justify-center bg-[#0B0B0C]">
-      <div className="flex flex-col items-center gap-6">
-        <div className="h-[46px] w-[188px] sm:h-[54px] sm:w-[220px] animate-pulse">
+    <div className="flex min-h-[100dvh] w-full flex-col items-center justify-center bg-[#0B0B0C] overflow-hidden">
+      {/* Ambient glow behind the logo */}
+      <div className="absolute h-72 w-72 rounded-full bg-[rgba(57,255,20,0.06)] blur-[80px]" />
+
+      <div
+        className="relative flex flex-col items-center gap-7"
+        style={{
+          animation: "splashIn 0.55s cubic-bezier(0.34,1.56,0.64,1) both",
+        }}
+      >
+        {/* Logo */}
+        <div className="h-[52px] w-[210px]">
           <Image
             src="/streak-logo-header-tight.png"
             alt="Streak"
@@ -14,14 +23,32 @@ export default function Loading() {
             priority
           />
         </div>
-        <div className="flex items-center gap-3 text-[#A1A1AA]">
-          <svg className="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          <span className="text-sm font-medium tracking-wide">Cooking Magic...</span>
+
+        {/* Loading dots */}
+        <div className="flex items-center gap-1.5">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="h-1.5 w-1.5 rounded-full bg-[#39FF14]"
+              style={{
+                animation: `dotPulse 1.4s ease-in-out ${i * 0.18}s infinite`,
+                opacity: 0.35,
+              }}
+            />
+          ))}
         </div>
       </div>
+
+      <style>{`
+        @keyframes splashIn {
+          from { opacity: 0; transform: scale(0.82); }
+          to   { opacity: 1; transform: scale(1); }
+        }
+        @keyframes dotPulse {
+          0%, 80%, 100% { opacity: 0.25; transform: scale(0.85); }
+          40% { opacity: 1; transform: scale(1); }
+        }
+      `}</style>
     </div>
   );
 }

@@ -194,8 +194,8 @@ function getTodayStatus(minutesRemaining: number, status: DashboardData["todayEn
   };
 }
 
-function LeaveButton({ profileId, syncUserId }: { profileId: string; syncUserId: string | null }) {
-  const [leaveState, setLeaveState] = useState<"idle" | "pending" | "marked" | "undoing">("idle");
+function LeaveButton({ profileId, syncUserId, initiallyMarked = false }: { profileId: string; syncUserId: string | null; initiallyMarked?: boolean }) {
+  const [leaveState, setLeaveState] = useState<"idle" | "pending" | "marked">(initiallyMarked ? "marked" : "idle");
   const [error, setError] = useState<string | null>(null);
   const id = syncUserId ?? profileId;
 
@@ -214,14 +214,12 @@ function LeaveButton({ profileId, syncUserId }: { profileId: string; syncUserId:
 
   async function handleUndo() {
     if (!id) return;
-    setLeaveState("undoing");
     setError(null);
     const result = await undoLeaveMarkAction(id);
     if (result.ok) {
       setLeaveState("idle");
     } else {
       setError(result.message);
-      setLeaveState("marked");
     }
   }
 
@@ -413,6 +411,7 @@ function TodayView(data: DashboardData) {
     ? "bg-[linear-gradient(90deg,#FDE68A,#FBBF24,#F59E0B)] shadow-[0_0_30px_rgba(251,191,36,0.24)]"
     : "bg-[linear-gradient(90deg,#FCA5A5,#F87171,#EF4444)] shadow-[0_0_30px_rgba(248,113,113,0.24)]";
   const hasStartedToday = data.todayEntry.swipes.length > 0;
+  const isOnLeaveToday = data.todayEntry.syncSource === "manual_leave";
   const minimumViable = data.profile.firstSwipeAt
     ? new Date(new Date(data.profile.firstSwipeAt).getTime() + 4.5 * 60 * 60 * 1000).toISOString()
     : null;
@@ -563,17 +562,17 @@ function TodayView(data: DashboardData) {
               <p className="magic-tech-label text-xs text-[#A1A1AA]">TODAY ENGINE</p>
               <h2 className="text-xl font-semibold tracking-[-0.03em] text-white">When can I leave?</h2>
             </div>
-            <div className="flex w-full items-center gap-2">
+            <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => setShowExitGuide(true)}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-[#17171A] text-sm text-[#A1A1AA] transition hover:text-white"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#17171A] text-sm text-[#A1A1AA] transition hover:text-white"
               >
                 i
               </button>
-              <div className="flex-1 rounded-xl bg-[#1A1A1D] px-4 py-2 text-sm text-white">
+              <div className="rounded-xl bg-[#1A1A1D] px-4 py-2 text-sm text-white">
                 <div className="text-[11px] uppercase tracking-[0.12em] text-[#71717A]">Started</div>
-                <div>{hasStartedToday ? `${firstSwipeLabel.time} ${firstSwipeLabel.meridiem}` : "First swipe pending"}</div>
+                <div className="whitespace-nowrap">{hasStartedToday ? `${firstSwipeLabel.time} ${firstSwipeLabel.meridiem}` : "First swipe pending"}</div>
               </div>
             </div>
           </div>
@@ -596,7 +595,7 @@ function TodayView(data: DashboardData) {
             </p>
           </div>
 
-          {hasStartedToday ? (
+          {isOnLeaveToday ? null : hasStartedToday ? (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <MiniCard title="Avoid LOP" value={minimumViable ? toClockLabel(minimumViable) : "--"} />
               <MiniCard title="Comfort zone" value={comfortable ? toClockLabel(comfortable) : "--"} />
@@ -691,8 +690,8 @@ function TodayView(data: DashboardData) {
             </GlowCard>
           )}
 
-          {!hasStartedToday ? (
-            <LeaveButton profileId={data.profile.id ?? ""} syncUserId={data.syncUserId} />
+          {!hasStartedToday || isOnLeaveToday ? (
+            <LeaveButton profileId={data.profile.id ?? ""} syncUserId={data.syncUserId} initiallyMarked={isOnLeaveToday} />
           ) : null}
         </div>
       </div>
@@ -1283,7 +1282,14 @@ function ProfileView({
                 >
                   <div>
                     <p className="font-semibold tracking-[-0.02em] text-white">{toShortDate(entry.date)}</p>
-                    <p className="mt-1 text-sm text-[#A1A1AA]">{entry.swipes.length} swipes captured</p>
+                    {entry.syncSource === "manual_leave" ? (
+                      <span className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-[rgba(57,255,20,0.1)] px-2.5 py-0.5 text-xs font-medium text-[#4ADE80]">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                        On Leave
+                      </span>
+                    ) : (
+                      <p className="mt-1 text-sm text-[#A1A1AA]">{entry.swipes.length} swipes captured</p>
+                    )}
                   </div>
                   <div className="flex items-center gap-3">
                     <p className="text-sm font-semibold text-white">{formatMinutes(calculateWorkedMinutes(entry.swipes))}</p>
@@ -1358,7 +1364,7 @@ function BottomNav({
                 key={tab.id}
                 type="button"
                 onClick={() => onSelect(tab.id)}
-                className={`relative flex items-center rounded-[22px] py-3.5 text-sm font-medium transition-all duration-350 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
+                className={`relative flex items-center rounded-[22px] py-3.5 text-sm font-medium transition-all duration-500 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] ${
                   active
                     ? "bg-[linear-gradient(160deg,rgba(57,255,20,0.28)_0%,rgba(57,255,20,0.12)_100%)] px-5 text-white shadow-[0_0_22px_rgba(57,255,20,0.20),inset_0_1px_0_rgba(255,255,255,0.08)]"
                     : "px-3.5 text-[#71717A] hover:text-[#A1A1AA]"
@@ -1368,7 +1374,7 @@ function BottomNav({
                   {tab.icon}
                 </svg>
                 <span
-                  className={`overflow-hidden whitespace-nowrap transition-all duration-350 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
+                  className={`overflow-hidden whitespace-nowrap transition-all duration-500 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] ${
                     active ? "ml-2 max-w-[80px] opacity-100" : "max-w-0 opacity-0"
                   }`}
                 >
@@ -1385,7 +1391,10 @@ function BottomNav({
 
 export function AppShell(data: DashboardData) {
   const [currentTab, setCurrentTab] = useState<TabId>("today");
-  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try { return localStorage.getItem("streak-push-enabled") === "true"; } catch { return false; }
+  });
   const hasTriggeredFirstSync = useRef(false);
 
   async function handleEnableNotifications() {
@@ -1397,7 +1406,8 @@ export function AppShell(data: DashboardData) {
         const registration = await navigator.serviceWorker.ready;
         const existing = await registration.pushManager.getSubscription();
         if (existing) await existing.unsubscribe();
-        setPushEnabled(false);
+      setPushEnabled(false);
+      localStorage.setItem("streak-push-enabled", "false");
       } catch (err) {
         console.error("Unsubscribe failed", err);
       }
@@ -1421,6 +1431,7 @@ export function AppShell(data: DashboardData) {
       });
 
       setPushEnabled(true);
+      localStorage.setItem("streak-push-enabled", "true");
     } catch (err) {
       console.error("Subscription failed", err);
       alert("Failed to enable notifications. Make sure you are using an HTTPS connection.");

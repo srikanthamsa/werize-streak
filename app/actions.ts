@@ -241,9 +241,9 @@ export async function markTodayAsLeaveAction(profileId: string): Promise<SyncSta
     const day = `${istNow.getUTCDate()}`.padStart(2, "0");
     const todayKey = `${year}-${month}-${day}`;
     
-    // Create a synthetic 9h window anchored to 09:00 IST
-    const inTime = new Date(`${todayKey}T03:30:00.000Z`);   // 09:00 IST in UTC
-    const outTime = new Date(`${todayKey}T12:30:00.000Z`);  // 18:00 IST in UTC
+    // Create a synthetic 10h window anchored to 10:00–19:00 IST
+    const inTime = new Date(`${todayKey}T04:30:00.000Z`);   // 10:00 IST in UTC
+    const outTime = new Date(`${todayKey}T13:30:00.000Z`);  // 19:00 IST in UTC
 
     const { error } = await supabase
       .from("attendance_logs")

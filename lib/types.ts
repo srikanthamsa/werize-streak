@@ -6,6 +6,7 @@ export type AttendanceDay = {
   date: string;
   swipes: string[];
   status: AttendanceDayStatus;
+  syncSource?: string;
 };
 
 export type UserProfile = {

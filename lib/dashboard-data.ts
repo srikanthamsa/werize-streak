@@ -31,6 +31,7 @@ export type DashboardData = {
 type AttendanceRow = {
   attendance_date: string;
   swipe_times: string[];
+  sync_source?: string | null;
 };
 
 type LeaderboardAttendanceRow = AttendanceRow & {
@@ -76,6 +77,7 @@ function normalizeAttendanceRows(rows: AttendanceRow[]) {
       date: row.attendance_date,
       swipes,
       status: "done" as const,
+      syncSource: row.sync_source ?? undefined,
     };
 
     return {
@@ -263,7 +265,7 @@ export async function getDashboardData(): Promise<DashboardData> {
   const profileRow = profileRows[0] as UserProfileRow;
   const { data: attendanceRows, error: attendanceError } = await supabase
     .from("attendance_logs")
-    .select("attendance_date, swipe_times")
+    .select("attendance_date, swipe_times, sync_source")
     .eq("user_id", profileRow.id)
     .order("attendance_date", { ascending: false });
 
