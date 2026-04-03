@@ -1015,10 +1015,8 @@ function NotificationsView({ notifications, profile }: { notifications: any[], p
                   
                   <button 
                     onClick={async () => {
-                      if (confirm("Permanently delete this notification?")) {
-                        const res = await deleteNotificationAction(n.id);
-                        if (!res.ok) alert(res.message);
-                      }
+                      const res = await deleteNotificationAction(n.id);
+                      if (!res.ok) alert(res.message);
                     }}
                     className="text-[#71717A] hover:text-[#F87171] transition p-2"
                   >
