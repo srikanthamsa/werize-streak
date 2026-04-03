@@ -16,6 +16,12 @@ export const metadata: Metadata = {
     shortcut: "/streak-logo-clean.png",
     apple: "/streak-logo-clean.png",
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Streak",
+  },
+  themeColor: "#0B0B0C",
 };
 
 export default function RootLayout({

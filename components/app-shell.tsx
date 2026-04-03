@@ -648,45 +648,26 @@ function TodayView(data: DashboardData) {
             )}
           </GlowCard>
 
-          {!hasStartedToday ? null : (
-            <GlowCard className="relative overflow-hidden p-6">
-              <div className="mb-4 flex items-center justify-between">
-                <p className="magic-tech-label text-xs text-[#A1A1AA]">LEAVE NOW IMPACT</p>
-                <div className="magic-glow-dot h-3 w-3 rounded-full bg-[#39FF14]" />
-              </div>
-              <div className="relative h-3 overflow-hidden rounded-full bg-[#1A1A1D]">
-                <div className="absolute inset-y-0 left-0 w-[58%] rounded-full bg-[linear-gradient(90deg,#7CFF61,#39FF14,#20E70A)] shadow-[0_0_24px_rgba(57,255,20,0.2)]" />
-              </div>
-              <div className="mt-6 rounded-[24px] bg-[#121214] px-5 py-5">
-                <p className="text-sm leading-6 text-white">
-                  {leaveNowCopy}
-                </p>
-                <div className="mt-4 grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowSwipes((value) => !value)}
-                    disabled={!hasStartedToday}
-                    className="rounded-2xl bg-[#1A1A1D] px-4 py-3 text-left text-sm text-[#A1A1AA] transition hover:bg-[#202024] hover:text-white"
-                  >
-                    {hasStartedToday ? `${data.todayEntry.swipes.length} swipes` : "No swipes yet"}
-                  </button>
-                  <div className="rounded-2xl bg-[#1A1A1D] px-4 py-3 text-sm text-[#A1A1AA]">
-                    Last synced {formatLastSynced(data.lastSyncedAt)}
-                  </div>
+          {!hasStartedToday || isOnLeaveToday ? null : (
+            <GlowCard className="p-6">
+              <p className="magic-tech-label text-xs text-[#A1A1AA]">LEAVE NOW IMPACT</p>
+              <div className="mt-4 grid grid-cols-2 gap-4">
+                <div className="rounded-2xl bg-[#17171A] p-4 border border-[#2d2d33] transition hover:border-[#3a3a3f]">
+                  <p className="text-xs uppercase tracking-[0.16em] text-[#71717A]">Today's Yield</p>
+                  <p className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-white">
+                    {formatMinutes(ifLeaveNow)}
+                  </p>
                 </div>
-                {showSwipes && hasStartedToday ? (
-                  <div className="mt-4 space-y-2">
-                    {data.todayEntry.swipes.map((swipe) => (
-                      <div
-                        key={swipe}
-                        className="flex items-center justify-between rounded-2xl bg-[#1A1A1D] px-4 py-3 text-sm text-[#A1A1AA]"
-                      >
-                        <span>Swipe</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
+                <div className="rounded-2xl bg-[#17171A] p-4 border border-[#2d2d33] transition hover:border-[#3a3a3f]">
+                  <p className="text-xs uppercase tracking-[0.16em] text-[#71717A]">Bank Delta</p>
+                  <p className={`mt-2 text-2xl font-semibold tracking-[-0.03em] ${ifLeaveNow >= DAILY_TARGET_MINUTES ? "text-[#4ADE80]" : "text-[#F87171]"}`}>
+                    {ifLeaveNow >= DAILY_TARGET_MINUTES ? "+" : "-"}{formatMinutes(Math.abs(ifLeaveNow - DAILY_TARGET_MINUTES))}
+                  </p>
+                </div>
               </div>
+              <p className="mt-5 text-sm leading-6 text-[#A1A1AA]">
+                {leaveNowCopy}
+              </p>
             </GlowCard>
           )}
 
@@ -764,7 +745,7 @@ function InsightsView({ monthEntries, monthSummary }: Pick<DashboardData, "month
   const isAhead = monthSummary.balanceMinutes >= 0;
 
   const validEntries = [...monthEntries]
-    .filter(e => e.swipes.length >= 2)
+    .filter(e => e.swipes.length >= 2 && e.syncSource !== "manual_leave")
     .map(e => ({ date: e.date, minutes: calculateWorkedMinutes(e.swipes), swipes: e.swipes }))
     .sort((a, b) => b.minutes - a.minutes);
     
@@ -1364,9 +1345,9 @@ function BottomNav({
                 key={tab.id}
                 type="button"
                 onClick={() => onSelect(tab.id)}
-                className={`relative flex items-center rounded-[22px] py-3.5 text-sm font-medium transition-all duration-500 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] ${
+                className={`relative flex items-center rounded-[22px] py-3.5 text-sm font-medium transition-all duration-350 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
                   active
-                    ? "bg-[linear-gradient(160deg,rgba(57,255,20,0.28)_0%,rgba(57,255,20,0.12)_100%)] px-5 text-white shadow-[0_0_22px_rgba(57,255,20,0.20),inset_0_1px_0_rgba(255,255,255,0.08)]"
+                    ? "bg-gradient-to-r from-[#4ADE80] to-[#22C55E] px-5 text-[#08110B] shadow-[0_0_22px_rgba(74,222,128,0.3)]"
                     : "px-3.5 text-[#71717A] hover:text-[#A1A1AA]"
                 }`}
               >
@@ -1374,7 +1355,7 @@ function BottomNav({
                   {tab.icon}
                 </svg>
                 <span
-                  className={`overflow-hidden whitespace-nowrap transition-all duration-500 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] ${
+                  className={`overflow-hidden whitespace-nowrap transition-all duration-350 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
                     active ? "ml-2 max-w-[80px] opacity-100" : "max-w-0 opacity-0"
                   }`}
                 >
