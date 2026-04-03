@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { calculateWorkedMinutes } from "@/lib/attendance";
+import { checkAndTrigger9hNotification } from "@/lib/notifications";
 
 export type SyncState = {
   ok: boolean;
@@ -181,7 +183,6 @@ export async function runAttendanceSync(profileId: string): Promise<SyncState> {
       .lt("attendance_date", monthStart);
 
     const { error: upsertError } = await supabase
-
       .from("attendance_logs")
       .upsert(upsertPayload, {
         onConflict: "user_id,attendance_date",
@@ -189,6 +190,15 @@ export async function runAttendanceSync(profileId: string): Promise<SyncState> {
 
     if (upsertError) {
       return { ok: false, message: `Upsert failed: ${upsertError.message}` };
+    }
+
+    // Trigger Notification Check (Focus on Today only)
+    const today = new Date().toISOString().split("T")[0];
+    const todayRow = attendanceRows.find((r: any) => r.attendance_date === today);
+    if (todayRow) {
+      const minutes = calculateWorkedMinutes(todayRow.swipe_times);
+      // Fire and forget (don't block the sync response)
+      checkAndTrigger9hNotification(profileId, minutes).catch(console.error);
     }
 
     revalidatePath("/");

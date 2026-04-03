@@ -517,16 +517,22 @@ function TodayView(data: DashboardData) {
         </GlowCard>
 
         <div className="flex flex-col gap-5 lg:col-span-4 lg:gap-6">
-          <GlowCard className={`p-6 ${timeBankBg}`}>
+          <div className={`relative overflow-hidden rounded-[28px] p-6 ${
+            data.monthSummary.balanceMinutes >= 0
+              ? "bg-[linear-gradient(135deg,rgba(57,255,20,0.18)_0%,rgba(57,255,20,0.07)_100%)] border border-[rgba(57,255,20,0.2)] shadow-[0_0_40px_rgba(57,255,20,0.1)]" 
+              : "bg-[linear-gradient(135deg,rgba(248,113,113,0.22)_0%,rgba(220,38,38,0.10)_100%)] border border-[rgba(248,113,113,0.25)] shadow-[0_0_40px_rgba(248,113,113,0.12)]"
+          }`}>
             <p className="magic-tech-label text-xs text-[#A1A1AA]">TIME BANK</p>
-            <h2 className={`mt-2 text-4xl font-semibold tracking-[-0.04em] ${data.monthSummary.balanceMinutes >= 0 ? "text-[#4ADE80]" : "text-[#F87171]"}`}>
+            <h2 className={`mt-2 text-4xl font-semibold tracking-[-0.04em] ${
+              data.monthSummary.balanceMinutes >= 0 ? "text-[#4ADE80]" : "text-[#F87171]"
+            }`}>
               {data.monthSummary.balanceMinutes >= 0 ? "+" : "-"}
               {formatMinutes(Math.abs(data.monthSummary.balanceMinutes))}
             </h2>
             <p className="mt-2 text-sm text-[#A1A1AA]">
               {data.monthSummary.balanceMinutes >= 0 ? "Ahead of expected pace." : "Below expected pace."}
             </p>
-          </GlowCard>
+          </div>
 
           <GlowCard className="p-6">
             {data.monthSummary.balanceMinutes < 0 ? (
@@ -1057,8 +1063,10 @@ function ProfileView({
   monthEntries,
   profile,
   onEnableNotifications,
+  pushEnabled,
 }: Pick<DashboardData, "syncUserId" | "lastSyncedAt" | "isLive" | "monthEntries" | "profile"> & {
   onEnableNotifications: () => void;
+  pushEnabled: boolean;
 }) {
   const [syncState, syncAction, isPending] = useActionState(syncAttendanceAction, {
     ok: false,
@@ -1160,9 +1168,19 @@ function ProfileView({
              <p className="mt-2 text-sm text-[#A1A1AA]">Get a notification on your phone the moment you clear your 9 hours or when someone joins the leaderboard.</p>
              <button
                onClick={onEnableNotifications}
-               className="mt-6 rounded-full bg-[#17171A] border border-[#2d2d33] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#1f1f24]"
+               disabled={pushEnabled}
+               className={`mt-6 rounded-full px-6 py-3 text-sm font-semibold transition flex items-center gap-2 ${
+                 pushEnabled
+                   ? "bg-[rgba(57,255,20,0.1)] border border-[rgba(57,255,20,0.2)] text-[#4ADE80] cursor-default"
+                   : "bg-[#17171A] border border-[#2d2d33] text-white hover:bg-[#1f1f24]"
+               }`}
              >
-               Enable Push Notifications
+               {pushEnabled ? (
+                 <>
+                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                   Notifications Enabled
+                 </>
+               ) : "Enable Push Notifications"}
              </button>
           </div>
         </GlowCard>
@@ -1280,6 +1298,7 @@ function BottomNav({
 
 export function AppShell(data: DashboardData) {
   const [currentTab, setCurrentTab] = useState<TabId>("today");
+  const [pushEnabled, setPushEnabled] = useState(false);
   const hasTriggeredFirstSync = useRef(false);
 
   async function handleEnableNotifications() {
@@ -1292,7 +1311,6 @@ export function AppShell(data: DashboardData) {
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
       });
 
-      // Save subscription to the database
       await fetch("/api/save-push-subscription", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1302,10 +1320,10 @@ export function AppShell(data: DashboardData) {
         }),
       });
 
-      alert("Push notifications enabled!");
+      setPushEnabled(true);
     } catch (err) {
       console.error("Subscription failed", err);
-      alert("Failed to enable notifications. Make sure you are using a HTTPS connection and have installed the app.");
+      alert("Failed to enable notifications. Make sure you are using an HTTPS connection.");
     }
   }
 
@@ -1402,6 +1420,7 @@ export function AppShell(data: DashboardData) {
             isLive={data.isLive}
             monthEntries={data.monthEntries}
             profile={data.profile}
+            pushEnabled={pushEnabled}
             onEnableNotifications={handleEnableNotifications}
           />
         ) : null}

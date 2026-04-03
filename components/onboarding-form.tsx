@@ -77,6 +77,7 @@ export function OnboardingForm({
 }) {
   const [authMessage, setAuthMessage] = useState(authError ? mapAuthMessage(authError) : "");
   const [authPending, setAuthPending] = useState(false);
+  const [redirectingToGoogle, setRedirectingToGoogle] = useState(false);
   const [hashLoginPending, setHashLoginPending] = useState(false);
   const [setupState, setupAction, setupPending] = useActionState(saveCredentialsAction, initialSetupState);
   const router = useRouter();
@@ -165,6 +166,9 @@ export function OnboardingForm({
     if (error) {
       setAuthMessage(error.message);
       setAuthPending(false);
+    } else {
+      // OAuth redirect is in progress — show a clear 'Redirecting' message
+      setRedirectingToGoogle(true);
     }
   }
 
@@ -216,7 +220,14 @@ export function OnboardingForm({
                   disabled={authPending || hashLoginPending}
                   className="inline-flex w-full sm:w-auto items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-[#0B0B0C] transition hover:bg-gray-200 disabled:opacity-60 gap-3"
                 >
-                  {authPending || hashLoginPending ? (
+                  {redirectingToGoogle ? (
+                    <>
+                      <svg className="h-5 w-5 animate-spin text-[#0B0B0C]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    </>
+                  ) : authPending || hashLoginPending ? (
                     <svg className="h-5 w-5 animate-spin text-[#0B0B0C]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -229,7 +240,7 @@ export function OnboardingForm({
                       <path d="M9 3.57955C10.3214 3.57955 11.5077 4.03364 12.4405 4.92545L15.0218 2.34409C13.4632 0.891818 11.4259 0 9 0C5.48182 0 2.43818 2.01682 0.957275 4.95818L3.96409 7.29C4.67182 5.16273 6.65591 3.57955 9 3.57955Z" fill="#EA4335"/>
                     </svg>
                   )}
-                  {hashLoginPending ? "Signing you in..." : authPending ? "Connecting..." : "Sign in with Google"}
+                  {redirectingToGoogle ? "Redirecting to Google..." : hashLoginPending ? "Signing you in..." : authPending ? "Connecting..." : "Sign in with Google"}
                 </button>
 
                 {authMessage ? (
