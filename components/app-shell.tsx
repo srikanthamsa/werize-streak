@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import Image from "next/image";
 import { syncAttendanceAction, markTodayAsLeaveAction, undoLeaveMarkAction, deleteNotificationAction } from "@/app/actions";
 import {
@@ -404,26 +405,25 @@ function StreakFireIcon({ className = "h-5 w-5" }: { className?: string }) {
         setTimeout(() => setClicked(false), 800);
       }}
       className={`relative inline-flex items-center justify-center cursor-pointer transition-all duration-500 ease-out origin-bottom ${
-        clicked ? "scale-150 rotate-12 drop-shadow-[0_0_35px_rgba(248,113,113,1)] text-[#FF5A5A]" : "scale-100 hover:scale-110 drop-shadow-[0_0_15px_rgba(248,113,113,0.7)] text-[#F87171] animate-[firePulse_2s_ease-in-out_infinite]"
+        clicked ? "scale-150 drop-shadow-[0_0_35px_rgba(248,113,113,1)]" : "scale-100 hover:scale-110 drop-shadow-[0_0_15px_rgba(248,113,113,0.4)]"
       } ${className}`}
     >
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full relative z-10">
-        <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.256 1.185-3.103a2.5 2.5 0 0 0 3.315 3.603z"/>
-      </svg>
+      <div className="absolute inset-[-20%] pointer-events-none">
+        <DotLottieReact
+          src="/Fire.lottie"
+          loop
+          autoplay
+          className="w-full h-full relative z-10"
+        />
+      </div>
       {/* Particle bursts */}
       {clicked && (
         <span className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
           <span className="absolute h-2.5 w-2.5 rounded-full bg-[#FF5A5A] animate-[ping_0.8s_ease-out_1]" style={{ transform: 'translate(-12px, -15px)' }} />
-          <span className="absolute h-2w-2 rounded-full bg-[#FCA5A5] animate-[ping_0.6s_ease-out_1]" style={{ transform: 'translate(10px, -20px)' }} />
+          <span className="absolute h-2 w-2 rounded-full bg-[#FCA5A5] animate-[ping_0.6s_ease-out_1]" style={{ transform: 'translate(10px, -20px)' }} />
           <span className="absolute h-1.5 w-1.5 rounded-full bg-[#FFFFFF] animate-[ping_1s_ease-out_1]" style={{ transform: 'translate(0px, -25px)' }} />
         </span>
       )}
-      <style>{`
-        @keyframes firePulse {
-          0%, 100% { transform: scale(1) rotate(-3deg); filter: drop-shadow(0 0 10px rgba(248,113,113,0.5)); }
-          50% { transform: scale(1.15) rotate(3deg); filter: drop-shadow(0 0 25px rgba(248,113,113,0.9)); color: #FF5A5A; }
-        }
-      `}</style>
     </div>
   );
 }
@@ -1624,7 +1624,7 @@ export function AppShell(data: DashboardData) {
       const timer = setTimeout(() => {
         setIsBooting(false);
         hasBootedThisSession = true;
-      }, 1800);
+      }, 1000);
       return () => clearTimeout(timer);
     }
   }, []);
