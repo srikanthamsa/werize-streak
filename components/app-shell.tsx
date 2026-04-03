@@ -393,6 +393,35 @@ function Header({
   );
 }
 
+function StreakFireIcon({ className = "h-5 w-5" }: { className?: string }) {
+  const [clicked, setClicked] = useState(false);
+  return (
+    <div
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setClicked(true);
+        setTimeout(() => setClicked(false), 800);
+      }}
+      className={`relative inline-flex items-center justify-center cursor-pointer transition-all duration-500 ease-out ${
+        clicked ? "scale-150 rotate-12 drop-shadow-[0_0_25px_rgba(248,113,113,0.8)] text-[#FF5A5A]" : "scale-100 hover:scale-110 drop-shadow-[0_0_10px_rgba(248,113,113,0.5)] text-[#F87171]"
+      } ${className}`}
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full relative z-10">
+        <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.256 1.185-3.103a2.5 2.5 0 0 0 3.315 3.603z"/>
+      </svg>
+      {/* Particle bursts */}
+      {clicked && (
+        <span className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+          <span className="absolute h-2 w-2 rounded-full bg-[#FF5A5A] animate-[ping_0.8s_ease-out_1]" style={{ transform: 'translate(-10px, -10px)' }} />
+          <span className="absolute h-2 w-2 rounded-full bg-[#FCA5A5] animate-[ping_0.6s_ease-out_1]" style={{ transform: 'translate(10px, -15px)' }} />
+          <span className="absolute h-1.5 w-1.5 rounded-full bg-[#FFFFFF] animate-[ping_1s_ease-out_1]" style={{ transform: 'translate(0px, -20px)' }} />
+        </span>
+      )}
+    </div>
+  );
+}
+
 function TodayView(data: DashboardData) {
   const [showSwipes, setShowSwipes] = useState(false);
   const [showStreakDetails, setShowStreakDetails] = useState(false);
@@ -529,8 +558,9 @@ function TodayView(data: DashboardData) {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="magic-tech-label text-[11px] text-[#71717A]">STREAK</p>
-                    <p className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-white">
-                      🔥 {data.streak.currentStreak}
+                    <p className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-white flex items-center gap-2">
+                      <StreakFireIcon className="h-8 w-8" />
+                      {data.streak.currentStreak}
                     </p>
                     <p className="mt-1 text-sm text-[#A1A1AA]">
                       Best {data.streak.longestStreak}
@@ -1187,10 +1217,13 @@ function LeaderboardView({
                         <span className="mr-1 text-[10px] font-normal tracking-[0.1em] text-[#71717A] uppercase transition">avg</span>
                         {formatMinutes(entry.averageDailyMinutes ?? 0)}
                       </p>
-                      <p className="mt-1 whitespace-nowrap text-xs text-[#A1A1AA]">
+                      <div className="mt-1 whitespace-nowrap text-xs text-[#A1A1AA]">
                         <span className="mr-1 text-[10px] font-normal tracking-[0.1em] text-[#71717A] uppercase transition">streak</span>
-                        🔥 {entry.currentStreak ?? 0}
-                      </p>
+                        <div className="inline-flex items-center gap-1">
+                          <StreakFireIcon className="h-3.5 w-3.5" />
+                          {entry.currentStreak ?? 0}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

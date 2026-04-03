@@ -253,7 +253,7 @@ export function calculateStreakData(entries: AttendanceDay[], todayDateKey = toL
   const endOfDayFeedback = recoveredToday
     ? "Clutched it. Streak saved."
     : realTimeStatus === "safe"
-    ? "Streak continued 🔥"
+    ? "Streak continued"
     : streakStatus === "broken" && currentStreak > 0
     ? "Streak broken. Start again."
     : currentStreak > 0
@@ -280,7 +280,7 @@ export function calculateStreakData(entries: AttendanceDay[], todayDateKey = toL
       evening: !todayEntry.swipes.length || realTimeStatus === "safe"
         ? null
         : `Last chance. ${formatMinutes(remainingMinutes)} to save your streak.`,
-      success: realTimeStatus === "safe" ? "+1 added. Streak alive 🔥" : null,
+      success: realTimeStatus === "safe" ? "+1 added. Streak alive!" : null,
     },
   };
 }
