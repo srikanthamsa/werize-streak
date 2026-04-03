@@ -1180,7 +1180,7 @@ function ProfileView({
 
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <Link
-              href="/setup"
+              href="/setup?mode=edit"
               className="inline-flex rounded-full bg-[#17171A] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#1f1f24]"
             >
               Update Preferences
@@ -1265,7 +1265,7 @@ function ProfileView({
           </div>
         </GlowCard>
 
-        {profile?.email === "srikanthamsa@gmail.com" ? (
+        {profile?.email === "srikanthamsa@gmail.com" || profile?.email === "srikant.hamsa@werize.com" ? (
           <GlowCard className="p-8">
             <p className="magic-tech-label text-xs text-[#A1A1AA]">ADMIN SETTINGS</p>
             <div className="mt-3">

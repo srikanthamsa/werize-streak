@@ -13,8 +13,10 @@ export default async function SetupPage({
   const params = (await searchParams) ?? {};
   const authError = typeof params.error === "string" ? params.error : undefined;
 
-  // Existing live users who land here (e.g. right after Google OAuth redirect) go straight to the dashboard
-  if (authUser && data.syncUserId && data.isLive && !authError) {
+  const mode = typeof params.mode === "string" ? params.mode : undefined;
+
+  // Existing live users who land here naturally go straight to the dashboard, unless they explicitly click 'Update Preferences'
+  if (authUser && data.syncUserId && data.isLive && !authError && mode !== "edit") {
     redirect("/");
   }
 
