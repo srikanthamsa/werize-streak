@@ -929,7 +929,7 @@ function InsightsView({ monthEntries, monthSummary }: Pick<DashboardData, "month
   );
 }
 
-function NotificationsView({ notifications }: { notifications: any[] }) {
+function NotificationsView({ notifications, profile }: { notifications: any[], profile: any }) {
   return (
     <div className="grid w-full max-w-6xl grid-cols-1 gap-4">
       <h2 className="mb-2 text-2xl font-semibold tracking-[-0.04em] text-white">Activity</h2>
@@ -950,15 +950,57 @@ function NotificationsView({ notifications }: { notifications: any[] }) {
               ) : n.type === "new_join" ? (
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
               ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="m12 8 4 4-4 4"/><path d="M8 12h7"/></svg>
               )}
             </div>
-            <div>
-              <p className="font-semibold text-white">{n.title || "Alert"}</p>
-              <p className="mt-1 text-[14px] leading-relaxed text-[#A1A1AA]">
-                {n.body}
-              </p>
-              <p className="mt-2 text-[12px] uppercase tracking-wider text-[#71717A]">{formatRelativeTime(n.created_at)}</p>
+            <div className="flex-1">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="font-semibold text-white">{n.title || "Alert"}</p>
+                  <p className="mt-1 text-[14px] leading-relaxed text-[#A1A1AA]">
+                    {n.body}
+                  </p>
+                </div>
+                <button
+                  onClick={async () => {
+                    const secret = "streaksecrethamsa2026";
+                    await fetch("/api/admin/broadcast", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ 
+                        secret, 
+                        title: "Ping from Activity! 🔔", 
+                        body: `${profile?.fullName || "A user"} just poked you from the Activity tab!`,
+                        url: "/#Activity" 
+                      })
+                    });
+                    alert("Srikant has been pinged! 😂");
+                  }}
+                  className="rounded-full bg-[rgba(57,255,20,0.1)] p-2 text-[#39FF14] transition hover:bg-[rgba(57,255,20,0.15)]"
+                  title="Ping Srikant"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+                </button>
+              </div>
+              
+              <div className="mt-4 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-1">
+                  {["❤️", "😂", "🔥", "👀"].map(emoji => (
+                    <button
+                      key={emoji}
+                      className="rounded-full bg-[#121214] border border-[#2d2d33] px-2 py-1 text-sm transition hover:scale-110 active:scale-95"
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex items-center gap-3">
+                  <p className="text-[12px] uppercase tracking-wider text-[#71717A] font-medium">{formatRelativeTime(n.created_at)}</p>
+                  <button className="text-[#71717A] hover:text-[#F87171] transition p-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         ))
@@ -1365,8 +1407,8 @@ function ProfileView({
       <GlowCard className="col-span-12 p-8 lg:col-span-7">
         <p className="magic-tech-label text-xs text-[#A1A1AA]">RECENT HISTORY</p>
         {monthEntries.length ? (
-          <div className="mt-6 space-y-3">
-            {monthEntries.slice(0, 10).map((entry) => {
+          <div className="mt-6 max-h-[500px] space-y-3 overflow-y-auto pr-2 scrollbar-hide">
+            {monthEntries.map((entry) => {
               const isOnLeave = entry.syncSource === "manual_leave";
               const worked = calculateWorkedMinutes(entry.swipes);
 
@@ -1634,7 +1676,7 @@ export function AppShell(data: DashboardData) {
             monthEntries={data.monthEntries}
           />
         ) : null}
-        {currentTab === "notifications" ? <NotificationsView notifications={data.notifications} /> : null}
+        {currentTab === "notifications" ? <NotificationsView notifications={data.notifications} profile={data.profile} /> : null}
         {currentTab === "profile" ? (
           <ProfileView
             syncUserId={data.syncUserId}
