@@ -324,6 +324,7 @@ export async function getDashboardData(): Promise<DashboardData> {
   const derivedProfile: UserProfile = {
     id: profileRow.id,
     fullName: profileRow.full_name,
+    email: profileRow.email ?? null,
     role: profileRow.role ?? "Team Member",
     team: profileRow.team,
     leaderboardOptIn: profileRow.leaderboard_opt_in,

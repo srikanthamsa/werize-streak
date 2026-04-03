@@ -139,7 +139,7 @@ export function OnboardingForm({
 
       window.history.replaceState({}, "", "/setup");
       router.refresh();
-      setHashLoginPending(false);
+      // Keep hashLoginPending true while we wait for router redirect
     }).catch(() => {
       setAuthMessage("We could not finish signing you in. Request a fresh magic link.");
       setHashLoginPending(false);

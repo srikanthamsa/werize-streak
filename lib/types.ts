@@ -12,6 +12,7 @@ export type AttendanceDay = {
 export type UserProfile = {
   id: string;
   fullName: string;
+  email?: string | null;
   role: string;
   team: string;
   leaderboardOptIn: boolean;

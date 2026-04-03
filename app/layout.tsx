@@ -21,6 +21,9 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: "Streak",
   },
+};
+
+export const viewport = {
   themeColor: "#0B0B0C",
 };
 

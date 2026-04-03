@@ -57,24 +57,10 @@ const tabs: TabDefinition[] = [
   },
   {
     id: "leaderboard",
-    label: "Leaderboard",
+    label: "Arena",
     icon: (
       <path
-        d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6m12 5h1.5a2.5 2.5 0 0 0 0-5H18M8 21h8m-4-6v6m-4-6c0 3 1.5 4 4 4s4-1 4-4V5H8v10Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        fill="none"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    ),
-  },
-  {
-    id: "profile",
-    label: "Profile",
-    icon: (
-      <path
-        d="M12 12a3.25 3.25 0 1 0 0-6.5a3.25 3.25 0 0 0 0 6.5Zm-5.5 7a5.5 5.5 0 0 1 11 0"
+        d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
         stroke="currentColor"
         strokeWidth="1.8"
         fill="none"
@@ -94,6 +80,20 @@ const tabs: TabDefinition[] = [
         fill="none" 
         strokeLinecap="round" 
         strokeLinejoin="round" 
+      />
+    ),
+  },
+  {
+    id: "profile",
+    label: "Profile",
+    icon: (
+      <path
+        d="M12 12a3.25 3.25 0 1 0 0-6.5a3.25 3.25 0 0 0 0 6.5Zm-5.5 7a5.5 5.5 0 0 1 11 0"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
     ),
   },
@@ -421,7 +421,9 @@ function TodayView(data: DashboardData) {
   const required = data.targetExitTime;
   const displayRequired = formatDisplayTime(required);
   const currentAverageParts = splitDurationLabel(currentAverage);
-  const statusCopy = status.label === "Behind"
+  const statusCopy = isOnLeaveToday
+    ? "Enjoy your leave today."
+    : status.label === "Behind"
     ? "Behind today. Stay longer."
     : status.label === "Risk"
     ? "Close, but not clear."
@@ -559,8 +561,10 @@ function TodayView(data: DashboardData) {
         <GlowCard className="p-6 sm:p-8 lg:col-span-8">
           <div className="mb-6 flex items-center justify-between gap-4">
             <div>
-              <p className="magic-tech-label text-xs text-[#A1A1AA]">TODAY ENGINE</p>
-              <h2 className="text-xl font-semibold tracking-[-0.03em] text-white">When can I leave?</h2>
+              <p className="magic-tech-label text-xs text-[#A1A1AA]">DAY STATUS</p>
+              <h2 className="text-xl font-semibold tracking-[-0.03em] text-white">
+                {isOnLeaveToday ? "You're on Leave" : "When can I leave?"}
+              </h2>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -570,29 +574,44 @@ function TodayView(data: DashboardData) {
               >
                 i
               </button>
-              <div className="rounded-xl bg-[#1A1A1D] px-4 py-2 text-sm text-white">
-                <div className="text-[11px] uppercase tracking-[0.12em] text-[#71717A]">Started</div>
-                <div className="whitespace-nowrap">{hasStartedToday ? `${firstSwipeLabel.time} ${firstSwipeLabel.meridiem}` : "First swipe pending"}</div>
-              </div>
+              {!isOnLeaveToday ? (
+                <div className="rounded-xl bg-[#1A1A1D] px-4 py-2 text-sm text-white">
+                  <div className="text-[11px] uppercase tracking-[0.12em] text-[#71717A]">Started</div>
+                  <div className="whitespace-nowrap">{hasStartedToday ? `${firstSwipeLabel.time} ${firstSwipeLabel.meridiem}` : "First swipe pending"}</div>
+                </div>
+              ) : null}
             </div>
           </div>
 
           <div className="my-8 text-center sm:my-10">
-            <div className="flex items-end justify-center gap-3">
-              <h1 className="text-[58px] font-semibold leading-none tracking-[-0.02em] text-white sm:text-[78px]">
-                {displayRequired.time}
-              </h1>
-              <span className="mb-2 text-[16px] font-semibold tracking-[0.12em] text-[#A1A1AA] sm:mb-3 sm:text-[18px]">
-                {displayRequired.meridiem}
-              </span>
-            </div>
-            <p className="mt-2 text-sm text-[#A1A1AA]">
-              {!hasStartedToday
-                ? "Go to office first."
-                : minutesRemaining <= 0
-                ? "You are safe to leave now"
-                : "You’re good to leave by then"}
-            </p>
+            {isOnLeaveToday ? (
+              <div className="flex flex-col items-center justify-center gap-2">
+                <h1 className="text-[58px] font-semibold leading-none tracking-[-0.02em] text-white sm:text-[78px]">
+                  Leave
+                </h1>
+                <p className="mt-4 text-sm text-[#A1A1AA]">
+                  You're officially off the clock today. Check back tomorrow.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-end justify-center gap-3">
+                  <h1 className="text-[58px] font-semibold leading-none tracking-[-0.02em] text-white sm:text-[78px]">
+                    {displayRequired.time}
+                  </h1>
+                  <span className="mb-2 text-[16px] font-semibold tracking-[0.12em] text-[#A1A1AA] sm:mb-3 sm:text-[18px]">
+                    {displayRequired.meridiem}
+                  </span>
+                </div>
+                <p className="mt-2 text-sm text-[#A1A1AA]">
+                  {!hasStartedToday
+                    ? "Go to office first."
+                    : minutesRemaining <= 0
+                    ? "You are safe to leave now"
+                    : "You’re good to leave by then"}
+                </p>
+              </>
+            )}
           </div>
 
           {isOnLeaveToday ? null : hasStartedToday ? (
@@ -1245,6 +1264,62 @@ function ProfileView({
              </button>
           </div>
         </GlowCard>
+
+        {profile?.email === "srikanthamsa@gmail.com" ? (
+          <GlowCard className="p-8">
+            <p className="magic-tech-label text-xs text-[#A1A1AA]">ADMIN SETTINGS</p>
+            <div className="mt-3">
+              <h2 className="text-2xl font-semibold tracking-[-0.04em] text-white">Broadcast Alert</h2>
+              <p className="mt-2 text-sm text-[#A1A1AA]">Push a custom notification to all users.</p>
+              <form 
+                action="/api/admin/broadcast" 
+                method="POST" 
+                className="mt-6 flex flex-col gap-3"
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const form = e.currentTarget;
+                  const formData = new FormData(form);
+                  const title = formData.get("title") as string;
+                  const body = formData.get("body") as string;
+                  if (!title || !body) return;
+                  const secret = prompt("Enter ADMIN_BROADCAST_SECRET to confirm send:");
+                  if (!secret) return;
+                  
+                  const btn = form.querySelector('[type="submit"]') as HTMLButtonElement;
+                  const originalText = btn.textContent;
+                  btn.disabled = true;
+                  btn.textContent = "Sending...";
+                  
+                  try {
+                    const res = await fetch("/api/admin/broadcast", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ secret, title, body })
+                    });
+                    if (res.ok) {
+                      alert("Broadcast sent successfully!");
+                      form.reset();
+                    } else {
+                      const text = await res.text();
+                      alert("Failed to send: " + text);
+                    }
+                  } catch(err) {
+                    alert("Error sending broadcast: " + err);
+                  } finally {
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                  }
+                }}
+              >
+                <input type="text" name="title" placeholder="Message Title" className="rounded-xl bg-[#17171A] p-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#39FF14]" required />
+                <textarea name="body" placeholder="Message Body" rows={3} className="rounded-xl bg-[#17171A] p-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#39FF14]" required />
+                <button type="submit" className="mt-2 rounded-full bg-[rgba(57,255,20,0.1)] px-6 py-3 text-sm font-semibold text-[#4ADE80] transition hover:bg-[rgba(57,255,20,0.15)]">
+                  Send to all devices
+                </button>
+              </form>
+            </div>
+          </GlowCard>
+        ) : null}
       </div>
 
       <GlowCard className="col-span-12 p-8 lg:col-span-7">
