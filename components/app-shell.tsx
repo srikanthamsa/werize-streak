@@ -1722,10 +1722,7 @@ export function AppShell(data: DashboardData) {
       <div className="flex min-h-[100dvh] w-full flex-col items-center justify-center bg-[#0B0B0C] overflow-hidden">
         <div className="absolute h-72 w-72 rounded-full bg-[rgba(57,255,20,0.06)] blur-[80px]" />
 
-        <div
-          className="relative flex flex-col items-center gap-7"
-          style={{ animation: "splashIn 0.55s cubic-bezier(0.34,1.56,0.64,1) both" }}
-        >
+        <div className="relative flex flex-col items-center gap-7">
           <div className="h-[52px] w-[210px]">
              <Image
               src="/streak-logo-header-tight.png"
@@ -1752,10 +1749,6 @@ export function AppShell(data: DashboardData) {
         </div>
 
         <style>{`
-          @keyframes splashIn {
-            from { opacity: 0; transform: scale(0.82); }
-            to   { opacity: 1; transform: scale(1); }
-          }
           @keyframes dotPulse {
             0%, 80%, 100% { opacity: 0.25; transform: scale(0.85); }
             40% { opacity: 1; transform: scale(1); }

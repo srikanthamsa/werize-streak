@@ -8,9 +8,6 @@ export default function Loading() {
 
       <div
         className="relative flex flex-col items-center gap-7"
-        style={{
-          animation: "splashIn 0.55s cubic-bezier(0.34,1.56,0.64,1) both",
-        }}
       >
         {/* Logo */}
         <div className="h-[52px] w-[210px]">
@@ -40,10 +37,6 @@ export default function Loading() {
       </div>
 
       <style>{`
-        @keyframes splashIn {
-          from { opacity: 0; transform: scale(0.82); }
-          to   { opacity: 1; transform: scale(1); }
-        }
         @keyframes dotPulse {
           0%, 80%, 100% { opacity: 0.25; transform: scale(0.85); }
           40% { opacity: 1; transform: scale(1); }
