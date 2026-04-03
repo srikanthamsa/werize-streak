@@ -1593,6 +1593,16 @@ export function AppShell(data: DashboardData) {
   const hasTriggeredFirstSync = useRef(false);
 
   useEffect(() => {
+    // Gracefully dismiss the native HTML splash screen if it exists
+    const splash = document.getElementById("pwa-native-splash");
+    if (splash) {
+      setTimeout(() => {
+        splash.style.opacity = "0";
+        splash.style.pointerEvents = "none";
+        setTimeout(() => { splash.style.display = "none"; }, 400);
+      }, 100);
+    }
+
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/sw.js").then((reg) => {
         reg.pushManager.getSubscription().then((sub) => {

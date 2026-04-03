@@ -69,20 +69,6 @@ export default function RootLayout({
               40% { opacity: 1; transform: scale(1); }
             }
           `}} />
-          <Script id="splash-dismiss" strategy="afterInteractive" dangerouslySetInnerHTML={{__html: `
-            if (typeof window !== 'undefined') {
-               window.addEventListener('load', function() {
-                 setTimeout(function() {
-                   var splash = document.getElementById('pwa-native-splash');
-                   if (splash) {
-                     splash.style.opacity = '0';
-                     splash.style.pointerEvents = 'none';
-                     setTimeout(function() { splash.style.display = 'none'; }, 400);
-                   }
-                 }, 400); // short buffer to ensure next.js has painted
-               });
-            }
-          `}} />
         </div>
         {children}
       </body>
