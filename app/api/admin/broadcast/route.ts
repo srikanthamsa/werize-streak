@@ -48,7 +48,8 @@ export async function POST(request: Request) {
       body,
     }));
 
-    await supabase.from("notifications").insert(notificationRows);
+    const { error: insertError } = await supabase.from("notifications").insert(notificationRows);
+    if (insertError) throw insertError;
 
     // 3. Send push notifications to all targets
     const results = await Promise.allSettled(
@@ -63,7 +64,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       ok: true,
-      message: `Broadcast processed for ${targetUserIds.length} users. Feed updated. (Push fired to ${succeeded} endpoints).`,
+      message: `Broadcast processed: Added ${notificationRows.length} in-app cards and fired push notifications to ${succeeded} devices.`,
     });
   } catch (error: any) {
     console.error("Broadcast error:", error);

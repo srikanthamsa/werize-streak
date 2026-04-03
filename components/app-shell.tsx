@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { syncAttendanceAction, markTodayAsLeaveAction, undoLeaveMarkAction } from "@/app/actions";
 import {
@@ -1149,6 +1150,7 @@ function ProfileView({
   onEnableNotifications: () => void;
   pushEnabled: boolean;
 }) {
+  const router = useRouter();
   const [syncState, syncAction, isPending] = useActionState(syncAttendanceAction, {
     ok: false,
     message: "",
@@ -1251,19 +1253,26 @@ function ProfileView({
                onClick={onEnableNotifications}
                className={`group mt-6 rounded-full px-6 py-3 text-sm font-semibold transition flex items-center gap-2 ${
                  pushEnabled
-                   ? "bg-[rgba(57,255,20,0.1)] border border-[rgba(57,255,20,0.2)] text-[#4ADE80] hover:bg-[rgba(248,113,113,0.1)] hover:border-[rgba(248,113,113,0.2)] hover:text-[#F87171]"
+                   ? "bg-[rgba(57,255,20,0.1)] border border-[rgba(57,255,20,0.2)] text-[#4ADE80]"
                    : "bg-[#17171A] border border-[#2d2d33] text-white hover:bg-[#1f1f24]"
                }`}
              >
                {pushEnabled ? (
                  <>
-                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 group-hover:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 hidden group-hover:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                   <span className="group-hover:hidden">Notifications Enabled</span>
-                   <span className="hidden group-hover:inline">Turn Off</span>
+                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                   <span>Enabled</span>
                  </>
                ) : "Enable Push Notifications"}
              </button>
+             {pushEnabled && (
+               <button
+                 onClick={onEnableNotifications}
+                 className="mt-6 ml-3 group rounded-full px-6 py-3 text-sm font-semibold transition flex items-center gap-2 bg-[rgba(248,113,113,0.1)] border border-[rgba(248,113,113,0.2)] text-[#F87171] hover:bg-[rgba(248,113,113,0.15)]"
+               >
+                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                 <span>Turn Off</span>
+               </button>
+             )}
           </div>
         </GlowCard>
 
@@ -1300,6 +1309,7 @@ function ProfileView({
                     if (res.ok) {
                       alert("Broadcast sent successfully!");
                       form.reset();
+                      router.refresh();
                     } else {
                       const text = await res.text();
                       alert("Failed to send: " + text);
@@ -1461,6 +1471,7 @@ function BottomNav({
 }
 
 export function AppShell(data: DashboardData) {
+  const router = useRouter();
   const [currentTab, setCurrentTab] = useState<TabId>("today");
   const [pushEnabled, setPushEnabled] = useState(() => {
     if (typeof window === "undefined") return false;
