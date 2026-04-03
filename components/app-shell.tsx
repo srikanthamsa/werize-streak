@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import Image from "next/image";
-import { syncAttendanceAction, markTodayAsLeaveAction, undoLeaveMarkAction, deleteNotificationAction } from "@/app/actions";
+import { syncAttendanceAction, markTodayAsLeaveAction, undoLeaveMarkAction, deleteNotificationAction, markLeaveForDateAction } from "@/app/actions";
 import {
   calculateWorkedMinutes,
   DAILY_TARGET_MINUTES,
@@ -197,17 +197,28 @@ function getTodayStatus(minutesRemaining: number, status: DashboardData["todayEn
 }
 
 function LeaveButton({ profileId, syncUserId, initiallyMarked = false }: { profileId: string; syncUserId: string | null; initiallyMarked?: boolean }) {
-  const [leaveState, setLeaveState] = useState<"idle" | "pending" | "marked">(initiallyMarked ? "marked" : "idle");
+  const [leaveState, setLeaveState] = useState<"idle" | "pending" | "marked" | "selecting">(initiallyMarked ? "marked" : "idle");
   const [error, setError] = useState<string | null>(null);
+  const [dateStr, setDateStr] = useState(() => {
+    const today = new Date();
+    const istNow = new Date(today.getTime() + 5.5 * 60 * 60 * 1000);
+    return istNow.toISOString().split('T')[0];
+  });
   const id = syncUserId ?? profileId;
 
   async function handleMark() {
     if (!id) return;
     setLeaveState("pending");
     setError(null);
-    const result = await markTodayAsLeaveAction(id);
+    const result = await markLeaveForDateAction(id, dateStr);
     if (result.ok) {
-      setLeaveState("marked");
+      const istNow = new Date(new Date().getTime() + 5.5 * 60 * 60 * 1000).toISOString().split('T')[0];
+      if (dateStr === istNow) {
+        setLeaveState("marked");
+      } else {
+        setLeaveState("idle");
+        alert(result.message);
+      }
     } else {
       setError(result.message);
       setLeaveState("idle");
@@ -249,36 +260,33 @@ function LeaveButton({ profileId, syncUserId, initiallyMarked = false }: { profi
   }
 
   return (
-    <div>
-      <button
-        type="button"
-        onClick={handleMark}
-        disabled={leaveState === "pending"}
-        className="group relative flex w-full items-center gap-4 overflow-hidden rounded-[24px] border border-[#2A2A2E] bg-[#121214] px-5 py-4 text-left transition hover:border-[#3a3a3f] hover:bg-[#17171A]"
-      >
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#1D1D21] transition group-hover:bg-[#252529]">
-          {leaveState === "pending" ? (
-            <svg className="h-4 w-4 animate-spin text-[#A1A1AA]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
-          ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-[#71717A] transition group-hover:text-[#A1A1AA]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-              <line x1="16" y1="2" x2="16" y2="6" />
-              <line x1="8" y1="2" x2="8" y2="6" />
-              <line x1="3" y1="10" x2="21" y2="10" />
-            </svg>
-          )}
-        </div>
+    <div className="flex flex-col gap-3 rounded-[24px] bg-[#17171A] px-5 py-5 border border-[#2d2d33]">
+      <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-semibold text-[#D4D4D8] transition group-hover:text-white">
-            {leaveState === "pending" ? "Marking as leave..." : "Mark Today as Leave"}
+          <p className="text-sm font-semibold text-white">Missing a day?</p>
+          <p className="mt-1 text-xs text-[#A1A1AA]">
+            Mark any day as leave to keep your target accurate.
           </p>
-          <p className="text-xs text-[#71717A]">9h will be credited to your time bank</p>
         </div>
-      </button>
-      {error ? <p className="mt-2 px-2 text-xs text-[#F87171]">{error}</p> : null}
+      </div>
+      <div className="flex items-center gap-2 mt-2">
+        <input 
+          type="date" 
+          value={dateStr}
+          onChange={(e) => setDateStr(e.target.value)}
+          className="rounded-xl bg-[#1A1A1D] px-3 py-2.5 text-sm font-medium text-white focus:outline-none focus:ring-1 focus:ring-[#39FF14] border border-[#2d2d33] appearance-none"
+          max={new Date().toISOString().split('T')[0]}
+        />
+        <button
+          type="button"
+          onClick={handleMark}
+          disabled={leaveState === "pending"}
+          className="flex-1 rounded-xl bg-[rgba(57,255,20,0.1)] px-4 py-2.5 text-sm font-semibold text-[#4ADE80] transition hover:bg-[rgba(57,255,20,0.15)] disabled:opacity-50 appearance-none text-center"
+        >
+          {leaveState === "pending" ? "Applying..." : "Mark as Leave"}
+        </button>
+      </div>
+      {error ? <p className="mt-1 px-2 text-xs text-[#F87171]">{error}</p> : null}
     </div>
   );
 }
@@ -979,57 +987,6 @@ function NotificationsView({ notifications, profile }: { notifications: any[], p
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="group/popover relative">
-                    <button
-                      className="rounded-full bg-[rgba(57,255,20,0.1)] p-2 text-[#39FF14] transition hover:bg-[rgba(57,255,20,0.15)]"
-                      title="Actions"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-                    </button>
-                    <div className="invisible absolute right-0 top-full z-20 mt-2 w-48 rounded-2xl border border-[#2d2d33] bg-[#1a1a1e] p-2 shadow-2xl group-hover/popover:visible">
-                      <button
-                        onClick={async () => {
-                          const secret = "streaksecrethamsa2026";
-                          await fetch("/api/admin/broadcast", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ 
-                              secret, 
-                              title: "Poke! 👉", 
-                              body: `${profile?.fullName || "A user"} just poked you!`,
-                              url: "/#Activity" 
-                            })
-                          });
-                          alert("Poke sent! 😂");
-                        }}
-                        className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-[#39FF14] transition hover:bg-[#20E710]/10"
-                      >
-                        Poke Srikant
-                      </button>
-                      <button
-                        onClick={async () => {
-                          const msg = prompt("Enter your reply message:");
-                          if (!msg) return;
-                          const secret = "streaksecrethamsa2026";
-                          await fetch("/api/admin/broadcast", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ 
-                              secret, 
-                              title: "Custom Reply 💬", 
-                              body: `${profile?.fullName || "User"}: ${msg}`,
-                              url: "/#Activity" 
-                            })
-                          });
-                          alert("Message sent!");
-                        }}
-                        className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-white transition hover:bg-white/5"
-                      >
-                        Custom Reply
-                      </button>
-                    </div>
-                  </div>
-                  
                   <button 
                     onClick={async () => {
                       const res = await deleteNotificationAction(n.id);
@@ -1247,9 +1204,11 @@ function ProfileView({
   profile,
   onEnableNotifications,
   pushEnabled,
+  isPushLoading,
 }: Pick<DashboardData, "syncUserId" | "lastSyncedAt" | "isLive" | "monthEntries" | "profile"> & {
   onEnableNotifications: () => void;
   pushEnabled: boolean;
+  isPushLoading: boolean;
 }) {
   const router = useRouter();
   const [syncState, syncAction, isPending] = useActionState(syncAttendanceAction, {
@@ -1589,26 +1548,35 @@ function BottomNav({
 export function AppShell(data: DashboardData) {
   const router = useRouter();
   const [currentTab, setCurrentTab] = useState<TabId>("today");
-  const [pushEnabled, setPushEnabled] = useState(() => {
-    if (typeof window === "undefined") return false;
-    try { return localStorage.getItem("streak-push-enabled") === "true"; } catch { return false; }
-  });
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [isPushLoading, setIsPushLoading] = useState(false);
   const hasTriggeredFirstSync = useRef(false);
+
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").then((reg) => {
+        reg.pushManager.getSubscription().then((sub) => {
+          setPushEnabled(!!sub);
+        });
+      }).catch(console.error);
+    }
+  }, []);
 
   async function handleEnableNotifications() {
     if (!("serviceWorker" in navigator)) return;
+    setIsPushLoading(true);
+    if (!("serviceWorker" in navigator)) return;
 
     if (pushEnabled) {
-      // Unsubscribe
       try {
         const registration = await navigator.serviceWorker.ready;
         const existing = await registration.pushManager.getSubscription();
         if (existing) await existing.unsubscribe();
-      setPushEnabled(false);
-      localStorage.setItem("streak-push-enabled", "false");
+        setPushEnabled(false);
       } catch (err) {
         console.error("Unsubscribe failed", err);
       }
+      setIsPushLoading(false);
       return;
     }
 
@@ -1629,18 +1597,15 @@ export function AppShell(data: DashboardData) {
       });
 
       setPushEnabled(true);
-      localStorage.setItem("streak-push-enabled", "true");
     } catch (err) {
       console.error("Subscription failed", err);
       alert("Failed to enable notifications. Make sure you are using an HTTPS connection.");
+    } finally {
+      setIsPushLoading(false);
     }
   }
 
-  useEffect(() => {
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch(console.error);
-    }
-  }, []);
+
 
   useEffect(() => {
     if (!data.syncUserId || !data.isLive || hasTriggeredFirstSync.current) {
@@ -1730,6 +1695,7 @@ export function AppShell(data: DashboardData) {
             monthEntries={data.monthEntries}
             profile={data.profile}
             pushEnabled={pushEnabled}
+            isPushLoading={isPushLoading}
             onEnableNotifications={handleEnableNotifications}
           />
         ) : null}

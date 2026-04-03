@@ -227,29 +227,22 @@ export async function syncAttendanceAction(
   return runAttendanceSync(profileId);
 }
 
-export async function markTodayAsLeaveAction(profileId: string): Promise<SyncState> {
+export async function markLeaveForDateAction(profileId: string, dateKey: string): Promise<SyncState> {
   try {
-    if (!profileId) return { ok: false, message: "Missing profileId." };
+    if (!profileId || !dateKey) return { ok: false, message: "Missing profileId or dateKey." };
 
     const supabase = getSupabaseAdmin();
     const now = new Date();
     
-    // IST offset
-    const istNow = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
-    const year = istNow.getUTCFullYear();
-    const month = `${istNow.getUTCMonth() + 1}`.padStart(2, "0");
-    const day = `${istNow.getUTCDate()}`.padStart(2, "0");
-    const todayKey = `${year}-${month}-${day}`;
-    
-    // Create a synthetic 10h window anchored to 10:00–19:00 IST
-    const inTime = new Date(`${todayKey}T04:30:00.000Z`);   // 10:00 IST in UTC
-    const outTime = new Date(`${todayKey}T13:30:00.000Z`);  // 19:00 IST in UTC
+    // Create a synthetic 10h window anchored to 10:00–19:00 IST for the requested date
+    const inTime = new Date(`${dateKey}T04:30:00.000Z`);   // 10:00 IST in UTC
+    const outTime = new Date(`${dateKey}T13:30:00.000Z`);  // 19:00 IST in UTC
 
     const { error } = await supabase
       .from("attendance_logs")
       .upsert({
         user_id: profileId,
-        attendance_date: todayKey,
+        attendance_date: dateKey,
         swipe_times: [inTime.toISOString(), outTime.toISOString()],
         sync_source: "manual_leave",
         synced_at: now.toISOString(),
@@ -258,38 +251,54 @@ export async function markTodayAsLeaveAction(profileId: string): Promise<SyncSta
     if (error) return { ok: false, message: error.message };
 
     revalidatePath("/");
-    return { ok: true, message: "Today has been marked as leave." };
+    return { ok: true, message: `Leave marked for ${dateKey}.` };
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : "Unknown error." };
+  }
+}
+
+export async function markTodayAsLeaveAction(profileId: string): Promise<SyncState> {
+  // IST offset
+  const now = new Date();
+  const istNow = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
+  const year = istNow.getUTCFullYear();
+  const month = `${istNow.getUTCMonth() + 1}`.padStart(2, "0");
+  const day = `${istNow.getUTCDate()}`.padStart(2, "0");
+  const todayKey = `${year}-${month}-${day}`;
+  
+  return markLeaveForDateAction(profileId, todayKey);
+}
+
+export async function undoLeaveForDateAction(profileId: string, dateKey: string): Promise<SyncState> {
+  try {
+    if (!profileId || !dateKey) return { ok: false, message: "Missing profileId or dateKey." };
+
+    const supabase = getSupabaseAdmin();
+    const { error } = await supabase
+      .from("attendance_logs")
+      .delete()
+      .eq("user_id", profileId)
+      .eq("attendance_date", dateKey)
+      .eq("sync_source", "manual_leave");
+
+    if (error) return { ok: false, message: error.message };
+
+    revalidatePath("/");
+    return { ok: true, message: `Leave removed for ${dateKey}.` };
   } catch (error) {
     return { ok: false, message: error instanceof Error ? error.message : "Unknown error." };
   }
 }
 
 export async function undoLeaveMarkAction(profileId: string): Promise<SyncState> {
-  try {
-    if (!profileId) return { ok: false, message: "Missing profileId." };
-
-    const supabase = getSupabaseAdmin();
-    const now = new Date();
-    const istNow = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
-    const year = istNow.getUTCFullYear();
-    const month = `${istNow.getUTCMonth() + 1}`.padStart(2, "0");
-    const day = `${istNow.getUTCDate()}`.padStart(2, "0");
-    const todayKey = `${year}-${month}-${day}`;
-
-    const { error } = await supabase
-      .from("attendance_logs")
-      .delete()
-      .eq("user_id", profileId)
-      .eq("attendance_date", todayKey)
-      .eq("sync_source", "manual_leave");
-
-    if (error) return { ok: false, message: error.message };
-
-    revalidatePath("/");
-    return { ok: true, message: "Leave mark removed." };
-  } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : "Unknown error." };
-  }
+  const now = new Date();
+  const istNow = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
+  const year = istNow.getUTCFullYear();
+  const month = `${istNow.getUTCMonth() + 1}`.padStart(2, "0");
+  const day = `${istNow.getUTCDate()}`.padStart(2, "0");
+  const todayKey = `${year}-${month}-${day}`;
+  
+  return undoLeaveForDateAction(profileId, todayKey);
 }
 
 export async function deleteNotificationAction(notificationId: string): Promise<SyncState> {
