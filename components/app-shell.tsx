@@ -4,7 +4,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { syncAttendanceAction } from "@/app/actions";
+import { syncAttendanceAction, markTodayAsLeaveAction, undoLeaveMarkAction } from "@/app/actions";
 import {
   calculateWorkedMinutes,
   DAILY_TARGET_MINUTES,
@@ -85,7 +85,7 @@ const tabs: TabDefinition[] = [
   },
   {
     id: "notifications",
-    label: "Notifications",
+    label: "Activity",
     icon: (
       <path 
         d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"
@@ -192,6 +192,95 @@ function getTodayStatus(minutesRemaining: number, status: DashboardData["todayEn
     tone: "bg-[#EF4444]/15 text-[#F87171]",
     copy: "Not safe yet. Staying longer materially improves the month.",
   };
+}
+
+function LeaveButton({ profileId, syncUserId }: { profileId: string; syncUserId: string | null }) {
+  const [leaveState, setLeaveState] = useState<"idle" | "pending" | "marked" | "undoing">("idle");
+  const [error, setError] = useState<string | null>(null);
+  const id = syncUserId ?? profileId;
+
+  async function handleMark() {
+    if (!id) return;
+    setLeaveState("pending");
+    setError(null);
+    const result = await markTodayAsLeaveAction(id);
+    if (result.ok) {
+      setLeaveState("marked");
+    } else {
+      setError(result.message);
+      setLeaveState("idle");
+    }
+  }
+
+  async function handleUndo() {
+    if (!id) return;
+    setLeaveState("undoing");
+    setError(null);
+    const result = await undoLeaveMarkAction(id);
+    if (result.ok) {
+      setLeaveState("idle");
+    } else {
+      setError(result.message);
+      setLeaveState("marked");
+    }
+  }
+
+  if (leaveState === "marked") {
+    return (
+      <div className="flex items-center justify-between rounded-[24px] border border-[rgba(57,255,20,0.15)] bg-[rgba(57,255,20,0.06)] px-5 py-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[rgba(57,255,20,0.12)]">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-[#4ADE80]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-white">On Leave Today</p>
+            <p className="text-xs text-[#71717A]">9h credited to your bank</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={handleUndo}
+          className="rounded-full bg-[#17171A] border border-[#2d2d33] px-4 py-2 text-xs font-semibold text-[#A1A1AA] transition hover:text-white"
+        >
+          Undo
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={handleMark}
+        disabled={leaveState === "pending"}
+        className="group relative flex w-full items-center gap-4 overflow-hidden rounded-[24px] border border-[#2A2A2E] bg-[#121214] px-5 py-4 text-left transition hover:border-[#3a3a3f] hover:bg-[#17171A]"
+      >
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#1D1D21] transition group-hover:bg-[#252529]">
+          {leaveState === "pending" ? (
+            <svg className="h-4 w-4 animate-spin text-[#A1A1AA]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-[#71717A] transition group-hover:text-[#A1A1AA]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+          )}
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-[#D4D4D8] transition group-hover:text-white">
+            {leaveState === "pending" ? "Marking as leave..." : "Mark Today as Leave"}
+          </p>
+          <p className="text-xs text-[#71717A]">9h will be credited to your time bank</p>
+        </div>
+      </button>
+      {error ? <p className="mt-2 px-2 text-xs text-[#F87171]">{error}</p> : null}
+    </div>
+  );
 }
 
 function GlowCard({
@@ -474,7 +563,7 @@ function TodayView(data: DashboardData) {
               <p className="magic-tech-label text-xs text-[#A1A1AA]">TODAY ENGINE</p>
               <h2 className="text-xl font-semibold tracking-[-0.03em] text-white">When can I leave?</h2>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex w-full items-center gap-2">
               <button
                 type="button"
                 onClick={() => setShowExitGuide(true)}
@@ -482,7 +571,7 @@ function TodayView(data: DashboardData) {
               >
                 i
               </button>
-              <div className="rounded-xl bg-[#1A1A1D] px-4 py-2 text-right text-sm text-white">
+              <div className="flex-1 rounded-xl bg-[#1A1A1D] px-4 py-2 text-sm text-white">
                 <div className="text-[11px] uppercase tracking-[0.12em] text-[#71717A]">Started</div>
                 <div>{hasStartedToday ? `${firstSwipeLabel.time} ${firstSwipeLabel.meridiem}` : "First swipe pending"}</div>
               </div>
@@ -603,16 +692,7 @@ function TodayView(data: DashboardData) {
           )}
 
           {!hasStartedToday ? (
-            <button
-              type="button"
-              onClick={() => alert("Leave request queued. The server will calibrate your target.")}
-              className="mt-2 flex w-full items-center justify-center gap-2 rounded-[24px] border border-[#2d2d33] bg-[#121214] p-5 text-sm font-semibold text-[#A1A1AA] transition hover:bg-[#1A1A1D] hover:text-white"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M16 4h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h4m4-2v4m0 4v8m-4-4l4 4l4-4" />
-              </svg>
-              Mark Today as Leave
-            </button>
+            <LeaveButton profileId={data.profile.id ?? ""} syncUserId={data.syncUserId} />
           ) : null}
         </div>
       </div>
@@ -1153,7 +1233,7 @@ function ProfileView({
             <h2 className="text-lg font-semibold text-white">Find a bug or have an idea?</h2>
             <p className="text-sm text-[#A1A1AA]">Reach out to share feedback on how to make this better.</p>
             <a
-              href="mailto:support@streak.app"
+              href="mailto:srikanthamsa@gmail.com"
               className="mt-3 inline-block rounded-full bg-[#17171A] px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#1f1f24]"
             >
               Email Support
@@ -1168,17 +1248,18 @@ function ProfileView({
              <p className="mt-2 text-sm text-[#A1A1AA]">Get a notification on your phone the moment you clear your 9 hours or when someone joins the leaderboard.</p>
              <button
                onClick={onEnableNotifications}
-               disabled={pushEnabled}
-               className={`mt-6 rounded-full px-6 py-3 text-sm font-semibold transition flex items-center gap-2 ${
+               className={`group mt-6 rounded-full px-6 py-3 text-sm font-semibold transition flex items-center gap-2 ${
                  pushEnabled
-                   ? "bg-[rgba(57,255,20,0.1)] border border-[rgba(57,255,20,0.2)] text-[#4ADE80] cursor-default"
+                   ? "bg-[rgba(57,255,20,0.1)] border border-[rgba(57,255,20,0.2)] text-[#4ADE80] hover:bg-[rgba(248,113,113,0.1)] hover:border-[rgba(248,113,113,0.2)] hover:text-[#F87171]"
                    : "bg-[#17171A] border border-[#2d2d33] text-white hover:bg-[#1f1f24]"
                }`}
              >
                {pushEnabled ? (
                  <>
-                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-                   Notifications Enabled
+                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 group-hover:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 hidden group-hover:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                   <span className="group-hover:hidden">Notifications Enabled</span>
+                   <span className="hidden group-hover:inline">Turn Off</span>
                  </>
                ) : "Enable Push Notifications"}
              </button>
@@ -1265,10 +1346,10 @@ function BottomNav({
 }) {
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50">
-      <div className="flex justify-center px-6 pb-[calc(env(safe-area-inset-bottom)+18px)]">
-        {/* Glow halo behind the nav pill */}
-        <div className="pointer-events-none absolute bottom-0 left-1/2 h-28 w-72 -translate-x-1/2 rounded-full bg-[rgba(57,255,20,0.13)] blur-[40px]" />
-        <nav className="magic-bottom-nav pointer-events-auto relative flex items-center gap-2 rounded-[26px] p-2 shadow-[0_0_40px_rgba(57,255,20,0.15)]">
+      <div className="flex justify-center px-6 pb-[calc(env(safe-area-inset-bottom)+20px)]">
+        {/* Ambient glow halo */}
+        <div className="pointer-events-none absolute bottom-0 left-1/2 h-32 w-80 -translate-x-1/2 rounded-full bg-[rgba(57,255,20,0.1)] blur-[48px]" />
+        <nav className="magic-bottom-nav pointer-events-auto relative flex items-center gap-1 rounded-[28px] p-2 shadow-[0_0_40px_rgba(57,255,20,0.12)]">
           {tabs.map((tab) => {
             const active = tab.id === currentTab;
 
@@ -1277,16 +1358,22 @@ function BottomNav({
                 key={tab.id}
                 type="button"
                 onClick={() => onSelect(tab.id)}
-                className={`flex items-center gap-2 rounded-[20px] px-4 py-3 text-sm font-medium transition duration-300 ${
+                className={`relative flex items-center rounded-[22px] py-3.5 text-sm font-medium transition-all duration-350 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
                   active
-                    ? "bg-[linear-gradient(180deg,rgba(57,255,20,0.22),rgba(57,255,20,0.1))] text-white shadow-[0_0_28px_rgba(57,255,20,0.18)]"
-                    : "text-[#A1A1AA] hover:bg-[#17171A] hover:text-white"
+                    ? "bg-[linear-gradient(160deg,rgba(57,255,20,0.28)_0%,rgba(57,255,20,0.12)_100%)] px-5 text-white shadow-[0_0_22px_rgba(57,255,20,0.20),inset_0_1px_0_rgba(255,255,255,0.08)]"
+                    : "px-3.5 text-[#71717A] hover:text-[#A1A1AA]"
                 }`}
               >
-                <svg viewBox="0 0 24 24" className="size-[18px] shrink-0">
+                <svg viewBox="0 0 24 24" className={`shrink-0 transition-all duration-350 ${active ? "size-[19px]" : "size-[18px]"}`}>
                   {tab.icon}
                 </svg>
-                {active ? <span>{tab.label}</span> : null}
+                <span
+                  className={`overflow-hidden whitespace-nowrap transition-all duration-350 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
+                    active ? "ml-2 max-w-[80px] opacity-100" : "max-w-0 opacity-0"
+                  }`}
+                >
+                  {tab.label}
+                </span>
               </button>
             );
           })}
@@ -1303,6 +1390,19 @@ export function AppShell(data: DashboardData) {
 
   async function handleEnableNotifications() {
     if (!("serviceWorker" in navigator)) return;
+
+    if (pushEnabled) {
+      // Unsubscribe
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        const existing = await registration.pushManager.getSubscription();
+        if (existing) await existing.unsubscribe();
+        setPushEnabled(false);
+      } catch (err) {
+        console.error("Unsubscribe failed", err);
+      }
+      return;
+    }
 
     try {
       const registration = await navigator.serviceWorker.ready;
