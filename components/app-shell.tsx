@@ -1384,6 +1384,16 @@ export function AppShell(data: DashboardData) {
       <div className="relative z-10 flex flex-col items-center">
         <Header monthSummary={data.monthSummary} />
 
+        {currentTab === "today" ? <TodayView {...data} /> : null}
+        {currentTab === "insights" ? <InsightsView monthEntries={data.monthEntries} monthSummary={data.monthSummary} /> : null}
+        {currentTab === "leaderboard" ? (
+          <LeaderboardView
+            profile={data.profile}
+            leaderboardEntries={data.leaderboardEntries}
+            leaderboardCards={data.leaderboardCards}
+            monthEntries={data.monthEntries}
+          />
+        ) : null}
         {currentTab === "notifications" ? <NotificationsView notifications={data.notifications} /> : null}
         {currentTab === "profile" ? (
           <ProfileView
