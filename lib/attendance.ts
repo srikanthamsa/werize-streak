@@ -237,9 +237,9 @@ export function calculateStreakData(entries: AttendanceDay[], todayDateKey = toL
       ? "Clock in to protect the streak."
       : "Clock in to start the streak."
     : realTimeStatus === "safe"
-    ? "+1 to streak"
+    ? "Day completed cleanly."
     : realTimeStatus === "risk"
-    ? "Streak at risk 👀"
+    ? "Keep going to secure the day."
     : currentStreak > 0
     ? `You’re ${formatMinutes(remainingMinutes)} short. Streak will break.`
     : `You’re ${formatMinutes(remainingMinutes)} short. Clear the day to start your streak.`;

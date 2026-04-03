@@ -395,35 +395,16 @@ function Header({
 }
 
 function StreakFireIcon({ className = "h-5 w-5" }: { className?: string }) {
-  const [clicked, setClicked] = useState(false);
   return (
-    <div
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setClicked(true);
-        setTimeout(() => setClicked(false), 800);
-      }}
-      className={`relative inline-flex items-center justify-center cursor-pointer transition-all duration-500 ease-out origin-bottom ${
-        clicked ? "scale-150 drop-shadow-[0_0_35px_rgba(248,113,113,1)]" : "scale-100 hover:scale-110 drop-shadow-[0_0_15px_rgba(248,113,113,0.4)]"
-      } ${className}`}
-    >
+    <div className={`relative inline-flex items-center justify-center shrink-0 ${className}`}>
       <div className="absolute inset-[-20%] pointer-events-none">
         <DotLottieReact
           src="/Fire.lottie"
           loop
           autoplay
-          className="w-full h-full relative z-10"
+          className="w-full h-full relative z-10 drop-shadow-[0_0_15px_rgba(248,113,113,0.4)]"
         />
       </div>
-      {/* Particle bursts */}
-      {clicked && (
-        <span className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-          <span className="absolute h-2.5 w-2.5 rounded-full bg-[#FF5A5A] animate-[ping_0.8s_ease-out_1]" style={{ transform: 'translate(-12px, -15px)' }} />
-          <span className="absolute h-2 w-2 rounded-full bg-[#FCA5A5] animate-[ping_0.6s_ease-out_1]" style={{ transform: 'translate(10px, -20px)' }} />
-          <span className="absolute h-1.5 w-1.5 rounded-full bg-[#FFFFFF] animate-[ping_1s_ease-out_1]" style={{ transform: 'translate(0px, -25px)' }} />
-        </span>
-      )}
     </div>
   );
 }
@@ -483,10 +464,10 @@ function TodayView(data: DashboardData) {
   const streakLabel = data.streak.currentStreak === 0
     ? "Start today"
     : data.streak.realTimeStatus === "safe"
-    ? "+1 loading"
+    ? "Safe today"
     : data.streak.realTimeStatus === "risk"
-    ? "At risk"
-    : "Break risk";
+    ? "Target pending"
+    : "At risk";
 
   const daysLeft = Math.max(1, data.monthSummary.totalWorkingDays - data.monthSummary.workingDaysElapsed);
   const recoveryStep = data.monthSummary.balanceMinutes < 0
@@ -564,10 +545,10 @@ function TodayView(data: DashboardData) {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="magic-tech-label text-[11px] text-[#71717A]">STREAK</p>
-                    <p className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-white flex items-center gap-2">
-                      <StreakFireIcon className="h-8 w-8" />
-                      {data.streak.currentStreak}
-                    </p>
+                    <div className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-white flex items-center gap-1.5">
+                      <StreakFireIcon className="h-8 w-8 -mt-1" />
+                      <span>{data.streak.currentStreak}</span>
+                    </div>
                     <p className="mt-1 text-sm text-[#A1A1AA]">
                       Best {data.streak.longestStreak}
                     </p>
@@ -1223,12 +1204,10 @@ function LeaderboardView({
                         <span className="mr-1 text-[10px] font-normal tracking-[0.1em] text-[#71717A] uppercase transition">avg</span>
                         {formatMinutes(entry.averageDailyMinutes ?? 0)}
                       </p>
-                      <div className="mt-1 whitespace-nowrap text-xs text-[#A1A1AA]">
-                        <span className="mr-1 text-[10px] font-normal tracking-[0.1em] text-[#71717A] uppercase transition">streak</span>
-                        <div className="inline-flex items-center gap-1">
-                          <StreakFireIcon className="h-3.5 w-3.5" />
-                          {entry.currentStreak ?? 0}
-                        </div>
+                      <div className="mt-1 flex items-center justify-end gap-1.5 text-xs text-[#A1A1AA]">
+                        <span className="text-[10px] font-normal tracking-[0.1em] text-[#71717A] uppercase transition">streak</span>
+                        <StreakFireIcon className="h-[18px] w-[18px] -mt-[3px]" />
+                        <span className="font-semibold text-white">{entry.currentStreak ?? 0}</span>
                       </div>
                     </div>
                   </div>
@@ -1607,27 +1586,14 @@ function BottomNav({
   );
 }
 
-let hasBootedThisSession = false;
-
 export function AppShell(data: DashboardData) {
   const router = useRouter();
-  const [isBooting, setIsBooting] = useState(!hasBootedThisSession);
   const [currentTab, setCurrentTab] = useState<TabId>("today");
   const [pushEnabled, setPushEnabled] = useState(() => {
     if (typeof window === "undefined") return false;
     try { return localStorage.getItem("streak-push-enabled") === "true"; } catch { return false; }
   });
   const hasTriggeredFirstSync = useRef(false);
-
-  useEffect(() => {
-    if (!hasBootedThisSession) {
-      const timer = setTimeout(() => {
-        setIsBooting(false);
-        hasBootedThisSession = true;
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, []);
 
   async function handleEnableNotifications() {
     if (!("serviceWorker" in navigator)) return;
@@ -1738,28 +1704,6 @@ export function AppShell(data: DashboardData) {
       }
     };
   }, [data.isLive, data.syncUserId]);
-
-  if (isBooting) {
-    return (
-      <div className="flex min-h-[100dvh] fixed inset-0 z-[100] w-full flex-col items-center justify-center bg-[#0B0B0C] overflow-hidden transition-opacity duration-500">
-        <div className="absolute h-72 w-72 rounded-full bg-[rgba(57,255,20,0.06)] blur-[80px]" />
-        <div className="relative flex flex-col items-center gap-7" style={{ animation: "splashIn 0.55s cubic-bezier(0.34,1.56,0.64,1) both" }}>
-          <div className="h-[52px] w-[210px]">
-            <Image src="/streak-logo-header-tight.png" alt="Streak" width={220} height={54} className="h-full w-full object-contain" priority />
-          </div>
-          <div className="flex items-center gap-1.5">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="h-1.5 w-1.5 rounded-full bg-[#39FF14]" style={{ animation: `dotPulse 1.4s ease-in-out ${i * 0.18}s infinite`, opacity: 0.35 }} />
-            ))}
-          </div>
-        </div>
-        <style>{`
-          @keyframes splashIn { from { opacity: 0; transform: scale(0.82); } to { opacity: 1; transform: scale(1); } }
-          @keyframes dotPulse { 0%, 80%, 100% { opacity: 0.25; transform: scale(0.85); } 40% { opacity: 1; transform: scale(1); } }
-        `}</style>
-      </div>
-    );
-  }
 
   return (
     <main className="magic-shell min-h-screen bg-[#0B0B0C] px-6 py-10 pb-32 text-white">
