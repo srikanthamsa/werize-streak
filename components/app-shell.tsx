@@ -1294,6 +1294,7 @@ function ProfileView({
                   const formData = new FormData(form);
                   const title = formData.get("title") as string;
                   const body = formData.get("body") as string;
+                  const url = formData.get("url") as string;
                   if (!title || !body) return;
                   const secret = "streaksecrethamsa2026";
                   
@@ -1306,7 +1307,7 @@ function ProfileView({
                     const res = await fetch("/api/admin/broadcast", {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ secret, title, body })
+                      body: JSON.stringify({ secret, title, body, url })
                     });
                     if (res.ok) {
                       alert("Broadcast sent successfully!");
@@ -1326,6 +1327,7 @@ function ProfileView({
               >
                 <input type="text" name="title" placeholder="Message Title" className="rounded-xl bg-[#17171A] p-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#39FF14]" required />
                 <textarea name="body" placeholder="Message Body" rows={3} className="rounded-xl bg-[#17171A] p-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#39FF14]" required />
+                <input type="text" name="url" placeholder="Link URL (Optional, e.g. /#Arena)" className="rounded-xl bg-[#17171A] p-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#39FF14]" />
                 <button type="submit" className="mt-2 rounded-full bg-[rgba(57,255,20,0.1)] px-6 py-3 text-sm font-semibold text-[#4ADE80] transition hover:bg-[rgba(57,255,20,0.15)]">
                   Send to all devices
                 </button>

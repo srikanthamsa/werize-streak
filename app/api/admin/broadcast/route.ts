@@ -12,7 +12,7 @@ import { sendPushNotification } from "@/lib/notifications";
  */
 export async function POST(request: Request) {
   try {
-    const { secret, title, body, userIds } = await request.json();
+    const { secret, title, body, userIds, url } = await request.json();
 
     if (!secret || secret !== process.env.ADMIN_BROADCAST_SECRET) {
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
     // 3. Send push notifications to all targets
     const results = await Promise.allSettled(
       targetUserIds.map((userId: string) =>
-        sendPushNotification(userId, title, body)
+        sendPushNotification(userId, title, body, { url })
       )
     );
 
