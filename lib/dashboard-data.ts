@@ -117,6 +117,7 @@ function buildLeaderboardEntries(
     rows.push({
       attendance_date: row.attendance_date,
       swipe_times: row.swipe_times,
+      sync_source: row.sync_source,
     });
     attendanceByUser.set(row.user_id, rows);
   }
@@ -125,7 +126,9 @@ function buildLeaderboardEntries(
     .filter((row) => row.leaderboard_opt_in)
     .map((row) => {
       const normalizedEntries = normalizeAttendanceRows(attendanceByUser.get(row.id) ?? []);
-      const activeEntries = normalizedEntries.filter((entry) => entry.swipes.length > 0);
+      const activeEntries = normalizedEntries.filter((entry) => 
+        entry.swipes.length > 0 && entry.syncSource !== "manual_leave"
+      );
       const totalMinutes = activeEntries.reduce((sum, entry) => sum + calculateWorkedMinutes(entry.swipes), 0);
       const averageDailyMinutes = average(activeEntries.map((entry) => calculateWorkedMinutes(entry.swipes)));
       const averageArrivalTime = toTimeKey(
