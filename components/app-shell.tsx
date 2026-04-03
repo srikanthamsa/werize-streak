@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { syncAttendanceAction, markTodayAsLeaveAction, undoLeaveMarkAction } from "@/app/actions";
+import { syncAttendanceAction, markTodayAsLeaveAction, undoLeaveMarkAction, deleteNotificationAction } from "@/app/actions";
 import {
   calculateWorkedMinutes,
   DAILY_TARGET_MINUTES,
@@ -955,51 +955,80 @@ function NotificationsView({ notifications, profile }: { notifications: any[], p
             </div>
             <div className="flex-1">
               <div className="flex items-start justify-between gap-4">
-                <div>
+                <div className="flex-1">
                   <p className="font-semibold text-white">{n.title || "Alert"}</p>
                   <p className="mt-1 text-[14px] leading-relaxed text-[#A1A1AA]">
                     {n.body}
                   </p>
                 </div>
-                <button
-                  onClick={async () => {
-                    const secret = "streaksecrethamsa2026";
-                    await fetch("/api/admin/broadcast", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ 
-                        secret, 
-                        title: "Ping from Activity! 🔔", 
-                        body: `${profile?.fullName || "A user"} just poked you from the Activity tab!`,
-                        url: "/#Activity" 
-                      })
-                    });
-                    alert("Srikant has been pinged! 😂");
-                  }}
-                  className="rounded-full bg-[rgba(57,255,20,0.1)] p-2 text-[#39FF14] transition hover:bg-[rgba(57,255,20,0.15)]"
-                  title="Ping Srikant"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-                </button>
-              </div>
-              
-              <div className="mt-4 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-1">
-                  {["❤️", "😂", "🔥", "👀"].map(emoji => (
+                <div className="flex items-center gap-2">
+                  <div className="group/popover relative">
                     <button
-                      key={emoji}
-                      className="rounded-full bg-[#121214] border border-[#2d2d33] px-2 py-1 text-sm transition hover:scale-110 active:scale-95"
+                      className="rounded-full bg-[rgba(57,255,20,0.1)] p-2 text-[#39FF14] transition hover:bg-[rgba(57,255,20,0.15)]"
+                      title="Actions"
                     >
-                      {emoji}
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
                     </button>
-                  ))}
-                </div>
-                <div className="flex items-center gap-3">
-                  <p className="text-[12px] uppercase tracking-wider text-[#71717A] font-medium">{formatRelativeTime(n.created_at)}</p>
-                  <button className="text-[#71717A] hover:text-[#F87171] transition p-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                    <div className="invisible absolute right-0 top-full z-20 mt-2 w-48 rounded-2xl border border-[#2d2d33] bg-[#1a1a1e] p-2 shadow-2xl group-hover/popover:visible">
+                      <button
+                        onClick={async () => {
+                          const secret = "streaksecrethamsa2026";
+                          await fetch("/api/admin/broadcast", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ 
+                              secret, 
+                              title: "Poke! 👉", 
+                              body: `${profile?.fullName || "A user"} just poked you!`,
+                              url: "/#Activity" 
+                            })
+                          });
+                          alert("Poke sent! 😂");
+                        }}
+                        className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-[#39FF14] transition hover:bg-[#20E710]/10"
+                      >
+                        Poke Srikant
+                      </button>
+                      <button
+                        onClick={async () => {
+                          const msg = prompt("Enter your reply message:");
+                          if (!msg) return;
+                          const secret = "streaksecrethamsa2026";
+                          await fetch("/api/admin/broadcast", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ 
+                              secret, 
+                              title: "Custom Reply 💬", 
+                              body: `${profile?.fullName || "User"}: ${msg}`,
+                              url: "/#Activity" 
+                            })
+                          });
+                          alert("Message sent!");
+                        }}
+                        className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-white transition hover:bg-white/5"
+                      >
+                        Custom Reply
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <button 
+                    onClick={async () => {
+                      if (confirm("Permanently delete this notification?")) {
+                        const res = await deleteNotificationAction(n.id);
+                        if (!res.ok) alert(res.message);
+                      }
+                    }}
+                    className="text-[#71717A] hover:text-[#F87171] transition p-2"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
                   </button>
                 </div>
+              </div>
+              
+              <div className="mt-3">
+                <p className="text-[12px] uppercase tracking-wider text-[#71717A] font-medium">{formatRelativeTime(n.created_at)}</p>
               </div>
             </div>
           </div>

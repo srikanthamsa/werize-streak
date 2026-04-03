@@ -291,3 +291,22 @@ export async function undoLeaveMarkAction(profileId: string): Promise<SyncState>
     return { ok: false, message: error instanceof Error ? error.message : "Unknown error." };
   }
 }
+
+export async function deleteNotificationAction(notificationId: string): Promise<SyncState> {
+  try {
+    if (!notificationId) return { ok: false, message: "Missing notificationId." };
+
+    const supabase = getSupabaseAdmin();
+    const { error } = await supabase
+      .from("notifications")
+      .delete()
+      .eq("id", notificationId);
+
+    if (error) return { ok: false, message: error.message };
+
+    revalidatePath("/");
+    return { ok: true, message: "Notification deleted." };
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : "Unknown error." };
+  }
+}
