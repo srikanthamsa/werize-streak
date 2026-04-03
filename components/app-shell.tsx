@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import Image from "next/image";
-import { syncAttendanceAction, markTodayAsLeaveAction, undoLeaveMarkAction, deleteNotificationAction, markLeaveForDateAction } from "@/app/actions";
+import { syncAttendanceAction, markTodayAsLeaveAction, undoLeaveMarkAction, undoLeaveForDateAction, deleteNotificationAction, markLeaveForDateAction } from "@/app/actions";
 import {
   calculateWorkedMinutes,
   DAILY_TARGET_MINUTES,
@@ -18,7 +18,7 @@ import {
   formatRelativeTime,
 } from "@/lib/attendance";
 import type { DashboardData } from "@/lib/dashboard-data";
-import type { LeaderboardEntry } from "@/lib/types";
+import type { LeaderboardEntry, AttendanceDay, UserProfile } from "@/lib/types";
 
 type TabId = "today" | "insights" | "leaderboard" | "profile" | "notifications";
 
@@ -196,7 +196,7 @@ function getTodayStatus(minutesRemaining: number, status: DashboardData["todayEn
   };
 }
 
-function LeaveButton({ profileId, syncUserId, initiallyMarked = false }: { profileId: string; syncUserId: string | null; initiallyMarked?: boolean }) {
+function LeaveButton({ profileId, syncUserId, initiallyMarked = false, monthEntries = [] }: { profileId: string; syncUserId: string | null; initiallyMarked?: boolean; monthEntries?: AttendanceDay[] }) {
   const [leaveState, setLeaveState] = useState<"idle" | "pending" | "marked" | "selecting">(initiallyMarked ? "marked" : "idle");
   const [error, setError] = useState<string | null>(null);
   const [dateStr, setDateStr] = useState(() => {
@@ -206,19 +206,30 @@ function LeaveButton({ profileId, syncUserId, initiallyMarked = false }: { profi
   });
   const id = syncUserId ?? profileId;
 
+  const isLeaveForSelectedDate = monthEntries.some(e => e.date === dateStr && e.syncSource === "manual_leave");
+
   async function handleMark() {
     if (!id) return;
     setLeaveState("pending");
     setError(null);
     const result = await markLeaveForDateAction(id, dateStr);
     if (result.ok) {
-      const istNow = new Date(new Date().getTime() + 5.5 * 60 * 60 * 1000).toISOString().split('T')[0];
-      if (dateStr === istNow) {
-        setLeaveState("marked");
-      } else {
-        setLeaveState("idle");
-        alert(result.message);
-      }
+      setLeaveState("idle");
+      alert(result.message);
+    } else {
+      setError(result.message);
+      setLeaveState("idle");
+    }
+  }
+
+  async function handleUndoHistorical() {
+    if (!id) return;
+    setLeaveState("pending");
+    setError(null);
+    const result = await undoLeaveForDateAction(id, dateStr);
+    if (result.ok) {
+      setLeaveState("idle");
+      alert(result.message);
     } else {
       setError(result.message);
       setLeaveState("idle");
@@ -277,14 +288,25 @@ function LeaveButton({ profileId, syncUserId, initiallyMarked = false }: { profi
           className="rounded-xl bg-[#1A1A1D] px-3 py-2.5 text-sm font-medium text-white focus:outline-none focus:ring-1 focus:ring-[#39FF14] border border-[#2d2d33] appearance-none"
           max={new Date().toISOString().split('T')[0]}
         />
-        <button
-          type="button"
-          onClick={handleMark}
-          disabled={leaveState === "pending"}
-          className="flex-1 rounded-xl bg-[rgba(57,255,20,0.1)] px-4 py-2.5 text-sm font-semibold text-[#4ADE80] transition hover:bg-[rgba(57,255,20,0.15)] disabled:opacity-50 appearance-none text-center"
-        >
-          {leaveState === "pending" ? "Applying..." : "Mark as Leave"}
-        </button>
+        {isLeaveForSelectedDate ? (
+          <button
+            type="button"
+            onClick={handleUndoHistorical}
+            disabled={leaveState === "pending"}
+            className="flex-1 rounded-xl bg-[rgba(248,113,113,0.1)] px-4 py-2.5 text-sm font-semibold text-[#F87171] transition hover:bg-[rgba(248,113,113,0.15)] disabled:opacity-50 appearance-none text-center"
+          >
+            {leaveState === "pending" ? "Reverting..." : "Undo Leave"}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={handleMark}
+            disabled={leaveState === "pending"}
+            className="flex-1 rounded-xl bg-[rgba(57,255,20,0.1)] px-4 py-2.5 text-sm font-semibold text-[#4ADE80] transition hover:bg-[rgba(57,255,20,0.15)] disabled:opacity-50 appearance-none text-center"
+          >
+            {leaveState === "pending" ? "Applying..." : "Mark as Leave"}
+          </button>
+        )}
       </div>
       {error ? <p className="mt-1 px-2 text-xs text-[#F87171]">{error}</p> : null}
     </div>
@@ -719,7 +741,7 @@ function TodayView(data: DashboardData) {
           )}
 
           {!hasStartedToday || isOnLeaveToday ? (
-            <LeaveButton profileId={data.profile.id ?? ""} syncUserId={data.syncUserId} initiallyMarked={isOnLeaveToday} />
+            <LeaveButton profileId={data.profile.id ?? ""} syncUserId={data.syncUserId} initiallyMarked={isOnLeaveToday} monthEntries={data.monthEntries} />
           ) : null}
         </div>
       </div>
@@ -955,56 +977,74 @@ function InsightsView({ monthEntries, monthSummary }: Pick<DashboardData, "month
 }
 
 function NotificationsView({ notifications, profile }: { notifications: any[], profile: any }) {
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
+
   return (
     <div className="grid w-full max-w-6xl grid-cols-1 gap-4">
       <h2 className="mb-2 text-2xl font-semibold tracking-[-0.04em] text-white">Activity</h2>
       
       {notifications.length > 0 ? (
-        notifications.map(n => (
-          <div key={n.id} className="flex items-start gap-4 rounded-[22px] bg-[#17171A] p-5 shadow-sm transition hover:bg-[#1a1a1e]">
-            <div className={`mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border ${
-              n.type === "achievement" ? "bg-[rgba(251,191,36,0.1)] border-[rgba(251,191,36,0.2)] text-[#FBBF24]" :
-              n.type === "streak" ? "bg-[rgba(248,113,113,0.1)] border-[rgba(248,113,113,0.2)] text-[#F87171]" :
-              n.type === "new_join" ? "bg-[rgba(57,255,20,0.1)] border-[rgba(57,255,20,0.2)] text-[#39FF14]" :
-              "bg-[rgba(161,161,170,0.1)] border-[rgba(161,161,170,0.2)] text-[#A1A1AA]"
-            }`}>
-              {n.type === "achievement" ? (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
-              ) : n.type === "streak" ? (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.256 1.185-3.103a2.5 2.5 0 0 0 3.315 3.603z"/></svg>
-              ) : n.type === "new_join" ? (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="m12 8 4 4-4 4"/><path d="M8 12h7"/></svg>
-              )}
-            </div>
-            <div className="flex-1">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <p className="font-semibold text-white">{n.title || "Alert"}</p>
-                  <p className="mt-1 text-[14px] leading-relaxed text-[#A1A1AA]">
-                    {n.body}
-                  </p>
+        notifications.map(n => {
+          const isDeleting = deletingIds.has(n.id);
+          return (
+            <div key={n.id} className={`flex items-start gap-4 rounded-[22px] bg-[#17171A] p-5 shadow-sm transition hover:bg-[#1a1a1e] ${isDeleting ? "opacity-50" : ""}`}>
+              <div className={`mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border ${
+                n.type === "achievement" ? "bg-[rgba(251,191,36,0.1)] border-[rgba(251,191,36,0.2)] text-[#FBBF24]" :
+                n.type === "streak" ? "bg-[rgba(248,113,113,0.1)] border-[rgba(248,113,113,0.2)] text-[#F87171]" :
+                n.type === "new_join" ? "bg-[rgba(57,255,20,0.1)] border-[rgba(57,255,20,0.2)] text-[#39FF14]" :
+                "bg-[rgba(161,161,170,0.1)] border-[rgba(161,161,170,0.2)] text-[#A1A1AA]"
+              }`}>
+                {n.type === "achievement" ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+                ) : n.type === "streak" ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.256 1.185-3.103a2.5 2.5 0 0 0 3.315 3.603z"/></svg>
+                ) : n.type === "new_join" ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="m12 8 4 4-4 4"/><path d="M8 12h7"/></svg>
+                )}
+              </div>
+              <div className="flex-1">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <p className="font-semibold text-white">{n.title || "Alert"}</p>
+                    <p className="mt-1 text-[14px] leading-relaxed text-[#A1A1AA]">
+                      {n.body}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={async () => {
+                        setDeletingIds(prev => new Set(prev).add(n.id));
+                        const res = await deleteNotificationAction(n.id);
+                        if (!res.ok) {
+                          alert(res.message);
+                          setDeletingIds(prev => {
+                            const next = new Set(prev);
+                            next.delete(n.id);
+                            return next;
+                          });
+                        }
+                      }}
+                      disabled={isDeleting}
+                      className="text-[#71717A] hover:text-[#F87171] transition p-2 disabled:opacity-50"
+                    >
+                      {isDeleting ? (
+                        <svg className="h-4 w-4 animate-spin text-[#F87171]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                      )}
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button 
-                    onClick={async () => {
-                      const res = await deleteNotificationAction(n.id);
-                      if (!res.ok) alert(res.message);
-                    }}
-                    className="text-[#71717A] hover:text-[#F87171] transition p-2"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-                  </button>
+                
+                <div className="mt-3">
+                  <p className="text-[12px] uppercase tracking-wider text-[#71717A] font-medium">{formatRelativeTime(n.created_at)}</p>
                 </div>
               </div>
-              
-              <div className="mt-3">
-                <p className="text-[12px] uppercase tracking-wider text-[#71717A] font-medium">{formatRelativeTime(n.created_at)}</p>
-              </div>
             </div>
-          </div>
-        ))
+          );
+        })
       ) : (
         <div className="mt-6 flex w-full flex-col items-center justify-center py-12 text-center opacity-70">
           <svg xmlns="http://www.w3.org/2000/svg" className="mb-4 h-6 w-6 text-[#71717A]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1550,7 +1590,14 @@ export function AppShell(data: DashboardData) {
   const [currentTab, setCurrentTab] = useState<TabId>("today");
   const [pushEnabled, setPushEnabled] = useState(false);
   const [isPushLoading, setIsPushLoading] = useState(false);
+  const [isBooting, setIsBooting] = useState(true);
   const hasTriggeredFirstSync = useRef(false);
+
+  useEffect(() => {
+    // Dismiss splash after 1.8s for smooth PWA startup
+    const timer = setTimeout(() => setIsBooting(false), 1800);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if ("serviceWorker" in navigator) {
@@ -1669,6 +1716,54 @@ export function AppShell(data: DashboardData) {
       }
     };
   }, [data.isLive, data.syncUserId]);
+
+  if (isBooting) {
+    return (
+      <div className="flex min-h-[100dvh] w-full flex-col items-center justify-center bg-[#0B0B0C] overflow-hidden">
+        <div className="absolute h-72 w-72 rounded-full bg-[rgba(57,255,20,0.06)] blur-[80px]" />
+
+        <div
+          className="relative flex flex-col items-center gap-7"
+          style={{ animation: "splashIn 0.55s cubic-bezier(0.34,1.56,0.64,1) both" }}
+        >
+          <div className="h-[52px] w-[210px]">
+             <Image
+              src="/streak-logo-header-tight.png"
+              alt="Streak"
+              width={220}
+              height={54}
+              className="h-full w-full object-contain"
+              priority
+            />
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="h-1.5 w-1.5 rounded-full bg-[#39FF14]"
+                style={{
+                  animation: `dotPulse 1.4s ease-in-out ${i * 0.18}s infinite`,
+                  opacity: 0.35,
+                }}
+              />
+            ))}
+          </div>
+        </div>
+
+        <style>{`
+          @keyframes splashIn {
+            from { opacity: 0; transform: scale(0.82); }
+            to   { opacity: 1; transform: scale(1); }
+          }
+          @keyframes dotPulse {
+            0%, 80%, 100% { opacity: 0.25; transform: scale(0.85); }
+            40% { opacity: 1; transform: scale(1); }
+          }
+        `}</style>
+      </div>
+    );
+  }
 
   return (
     <main className="magic-shell min-h-screen bg-[#0B0B0C] px-6 py-10 pb-32 text-white">

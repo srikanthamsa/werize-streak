@@ -87,15 +87,18 @@ export function calculateMonthSummary(
   entries: AttendanceDay[],
   totalWorkingDays: number,
 ) {
-  const completedOrInProgress = entries.filter((entry) => entry.swipes.length > 0);
+  const leavesCount = entries.filter((entry) => entry.status === "leave").length;
+  const effectiveTotalWorkingDays = Math.max(0, totalWorkingDays - leavesCount);
+
+  const completedOrInProgress = entries.filter((entry) => entry.status !== "leave" && entry.swipes.length > 0);
   const actualMinutesToDate = completedOrInProgress.reduce((total, entry) => {
     return total + calculateWorkedMinutes(entry.swipes);
   }, 0);
   const workingDaysElapsed = completedOrInProgress.length;
   const targetMinutesToDate = workingDaysElapsed * DAILY_TARGET_MINUTES;
   const balanceMinutes = actualMinutesToDate - targetMinutesToDate;
-  const remainingDays = Math.max(1, totalWorkingDays - workingDaysElapsed);
-  const remainingTargetMinutes = totalWorkingDays * DAILY_TARGET_MINUTES - actualMinutesToDate;
+  const remainingDays = Math.max(1, effectiveTotalWorkingDays - workingDaysElapsed);
+  const remainingTargetMinutes = effectiveTotalWorkingDays * DAILY_TARGET_MINUTES - actualMinutesToDate;
   const recommendedDailyAverageMinutes = Math.max(
     0,
     Math.round(remainingTargetMinutes / remainingDays),
@@ -103,7 +106,7 @@ export function calculateMonthSummary(
 
   return {
     workingDaysElapsed,
-    totalWorkingDays,
+    totalWorkingDays: effectiveTotalWorkingDays,
     targetMinutesToDate,
     actualMinutesToDate,
     balanceMinutes,

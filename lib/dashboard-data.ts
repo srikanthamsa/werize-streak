@@ -60,7 +60,11 @@ function toLocalDateKey(date = new Date()) {
 }
 
 
-function getStatusForDay(entry: AttendanceDay): AttendanceDay["status"] {
+function getStatusForDay(entry: Omit<AttendanceDay, "status">): AttendanceDay["status"] {
+  if (entry.syncSource === "manual_leave") {
+    return "leave";
+  }
+
   if (entry.swipes.length === 0 || entry.swipes.length === 1) {
     return "missing_swipe";
   }
@@ -266,10 +270,16 @@ export async function getDashboardData(): Promise<DashboardData> {
   }
 
   const profileRow = profileRows[0] as UserProfileRow;
+  
+  const now = new Date();
+  const istNow = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
+  const startOfMonth = `${istNow.getUTCFullYear()}-${String(istNow.getUTCMonth() + 1).padStart(2, "0")}-01`;
+
   const { data: attendanceRows, error: attendanceError } = await supabase
     .from("attendance_logs")
     .select("attendance_date, swipe_times, sync_source")
     .eq("user_id", profileRow.id)
+    .gte("attendance_date", startOfMonth)
     .order("attendance_date", { ascending: false });
 
   if (attendanceError) {
@@ -303,8 +313,9 @@ export async function getDashboardData(): Promise<DashboardData> {
   if (leaderboardUserIds.length) {
     const { data: leaderboardAttendanceRows, error: leaderboardAttendanceError } = await supabase
       .from("attendance_logs")
-      .select("user_id, attendance_date, swipe_times")
-      .in("user_id", leaderboardUserIds);
+      .select("user_id, attendance_date, swipe_times, sync_source")
+      .in("user_id", leaderboardUserIds)
+      .gte("attendance_date", startOfMonth);
 
     if (leaderboardAttendanceError) {
       throw new Error(`Failed to fetch leaderboard attendance: ${leaderboardAttendanceError.message}`);
