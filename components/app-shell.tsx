@@ -937,14 +937,28 @@ function NotificationsView({ notifications }: { notifications: any[] }) {
       {notifications.length > 0 ? (
         notifications.map(n => (
           <div key={n.id} className="flex items-start gap-4 rounded-[22px] bg-[#17171A] p-5 shadow-sm transition hover:bg-[#1a1a1e]">
-            <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#121214] border border-[#2d2d33]">
-              {n.type === "new_join" ? "👋" : n.type === "achievement" ? "🏆" : n.type === "streak" ? "🔥" : "💬"}
+            <div className={`mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border ${
+              n.type === "achievement" ? "bg-[rgba(251,191,36,0.1)] border-[rgba(251,191,36,0.2)] text-[#FBBF24]" :
+              n.type === "streak" ? "bg-[rgba(248,113,113,0.1)] border-[rgba(248,113,113,0.2)] text-[#F87171]" :
+              n.type === "new_join" ? "bg-[rgba(57,255,20,0.1)] border-[rgba(57,255,20,0.2)] text-[#39FF14]" :
+              "bg-[rgba(161,161,170,0.1)] border-[rgba(161,161,170,0.2)] text-[#A1A1AA]"
+            }`}>
+              {n.type === "achievement" ? (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+              ) : n.type === "streak" ? (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.256 1.185-3.103a2.5 2.5 0 0 0 3.315 3.603z"/></svg>
+              ) : n.type === "new_join" ? (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              )}
             </div>
             <div>
-              <p className="text-[15px] leading-snug text-[#D4D4D8]">
+              <p className="font-semibold text-white">{n.title || "Alert"}</p>
+              <p className="mt-1 text-[14px] leading-relaxed text-[#A1A1AA]">
                 {n.body}
               </p>
-              <p className="mt-1 text-[13px] text-[#71717A]">{formatRelativeTime(n.created_at)}</p>
+              <p className="mt-2 text-[12px] uppercase tracking-wider text-[#71717A]">{formatRelativeTime(n.created_at)}</p>
             </div>
           </div>
         ))
@@ -1251,12 +1265,12 @@ function ProfileView({
              <p className="mt-2 text-sm text-[#A1A1AA]">Get a notification on your phone the moment you clear your 9 hours or when someone joins the leaderboard.</p>
              <div className="mt-6 flex flex-wrap items-center gap-3">
                <button
-                 onClick={onEnableNotifications}
                  className={`group rounded-full px-5 py-3 text-sm font-semibold transition flex items-center gap-2 ${
                    pushEnabled
-                     ? "bg-[rgba(57,255,20,0.1)] border border-[rgba(57,255,20,0.2)] text-[#4ADE80]"
+                     ? "bg-[rgba(57,255,20,0.1)] border border-[rgba(57,255,20,0.2)] text-[#4ADE80] cursor-default"
                      : "bg-[#17171A] border border-[#2d2d33] text-white hover:bg-[#1f1f24]"
                  }`}
+                 onClick={!pushEnabled ? onEnableNotifications : undefined}
                >
                  {pushEnabled ? (
                    <>
@@ -1327,7 +1341,18 @@ function ProfileView({
               >
                 <input type="text" name="title" placeholder="Message Title" className="rounded-xl bg-[#17171A] p-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#39FF14]" required />
                 <textarea name="body" placeholder="Message Body" rows={3} className="rounded-xl bg-[#17171A] p-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#39FF14]" required />
-                <input type="text" name="url" placeholder="Link URL (Optional, e.g. /#Arena)" className="rounded-xl bg-[#17171A] p-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#39FF14]" />
+                <div className="relative">
+                  <select name="url" className="w-full appearance-none rounded-xl bg-[#17171A] p-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#39FF14]">
+                    <option value="/">Main Hub (Home)</option>
+                    <option value="/#Insights">Key Insights</option>
+                    <option value="/#Arena">The Arena (Leaderboard)</option>
+                    <option value="/#Activity">Recent Activity Feed</option>
+                    <option value="/#Profile">Personal Profile</option>
+                  </select>
+                  <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#71717A]">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                  </div>
+                </div>
                 <button type="submit" className="mt-2 rounded-full bg-[rgba(57,255,20,0.1)] px-6 py-3 text-sm font-semibold text-[#4ADE80] transition hover:bg-[rgba(57,255,20,0.15)]">
                   Send to all devices
                 </button>
