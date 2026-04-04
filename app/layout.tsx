@@ -12,9 +12,9 @@ export const metadata: Metadata = {
   title: "Streak",
   description: "Attendance insights and hour bank dashboard for greytHR swipe data.",
   icons: {
-    icon: "/streak-logo-clean.png",
-    shortcut: "/streak-logo-clean.png",
-    apple: "/streak-logo-clean.png",
+    icon: "/streak-app-icon.png",
+    shortcut: "/streak-app-icon.png",
+    apple: "/streak-app-icon.png",
   },
   appleWebApp: {
     capable: true,
