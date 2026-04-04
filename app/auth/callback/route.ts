@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient, type EmailOtpType } from "@supabase/supabase-js";
+import { ACCESS_TOKEN_MAX_AGE, REFRESH_TOKEN_MAX_AGE } from "@/lib/supabase/auth";
 
 function getSupabaseAuthClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -64,7 +65,7 @@ export async function GET(request: Request) {
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: expiresIn,
+    maxAge: ACCESS_TOKEN_MAX_AGE,
   });
 
   response.cookies.set("streak-refresh-token", refreshToken, {
@@ -72,7 +73,7 @@ export async function GET(request: Request) {
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: 60 * 60 * 24 * 30,
+    maxAge: REFRESH_TOKEN_MAX_AGE,
   });
 
   return response;

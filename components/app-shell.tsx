@@ -1559,31 +1559,160 @@ function BottomNav({
   currentTab: TabId;
   onSelect: (tab: TabId) => void;
 }) {
+  const navRef = useRef<HTMLDivElement>(null);
+  const pillRef = useRef<HTMLDivElement>(null);
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const activeIdx = tabs.findIndex((t) => t.id === currentTab);
+
+  // Drag state
+  const dragState = useRef<{
+    startX: number;
+    pillStartX: number;
+    pillWidth: number;
+    dragging: boolean;
+    committed: boolean;
+  } | null>(null);
+
+  // Snap the pill to the active tab (no drag override)
+  useEffect(() => {
+    const pill = pillRef.current;
+    const btn = tabRefs.current[activeIdx];
+    if (!pill || !btn || dragState.current?.dragging) return;
+    const nav = navRef.current;
+    if (!nav) return;
+    const navRect = nav.getBoundingClientRect();
+    const btnRect = btn.getBoundingClientRect();
+    pill.style.transition = "left 0.42s cubic-bezier(0.34,1.56,0.64,1), width 0.42s cubic-bezier(0.34,1.56,0.64,1)";
+    pill.style.left = `${btnRect.left - navRect.left}px`;
+    pill.style.width = `${btnRect.width}px`;
+  }, [activeIdx]);
+
+  function getTabAtX(clientX: number): number {
+    const rects = tabRefs.current.map((b) => b?.getBoundingClientRect());
+    let closest = activeIdx;
+    let minDist = Infinity;
+    rects.forEach((r, i) => {
+      if (!r) return;
+      const cx = r.left + r.width / 2;
+      const d = Math.abs(clientX - cx);
+      if (d < minDist) { minDist = d; closest = i; }
+    });
+    return closest;
+  }
+
+  function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    const pill = pillRef.current;
+    const nav = navRef.current;
+    if (!pill || !nav) return;
+    // Only start drag if pointer is on the active pill
+    const pillRect = pill.getBoundingClientRect();
+    if (e.clientX < pillRect.left - 10 || e.clientX > pillRect.right + 10) return;
+
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const navRect = nav.getBoundingClientRect();
+    dragState.current = {
+      startX: e.clientX,
+      pillStartX: pillRect.left - navRect.left,
+      pillWidth: pillRect.width,
+      dragging: true,
+      committed: false,
+    };
+    pill.style.transition = "none";
+  }
+
+  function onPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    const ds = dragState.current;
+    if (!ds?.dragging) return;
+    const pill = pillRef.current;
+    const nav = navRef.current;
+    if (!pill || !nav) return;
+
+    const dx = e.clientX - ds.startX;
+    const navRect = nav.getBoundingClientRect();
+    const navPad = 8;
+    const maxLeft = navRect.width - ds.pillWidth - navPad;
+    const rawLeft = ds.pillStartX + dx;
+    const clampedLeft = Math.max(navPad, Math.min(maxLeft, rawLeft));
+
+    // Liquid stretch: widen pill slightly in direction of drag
+    const stretch = Math.min(Math.abs(dx) * 0.12, 18);
+    pill.style.width = `${ds.pillWidth + stretch}px`;
+    pill.style.left = `${clampedLeft}px`;
+
+    // Preview the destination tab with a faint highlight
+    const hoverIdx = getTabAtX(e.clientX);
+    tabRefs.current.forEach((b, i) => {
+      if (!b) return;
+      b.style.color = i === hoverIdx && i !== activeIdx ? "rgba(255,255,255,0.55)" : "";
+    });
+  }
+
+  function onPointerUp(e: React.PointerEvent<HTMLDivElement>) {
+    const ds = dragState.current;
+    if (!ds?.dragging) return;
+    dragState.current = null;
+
+    const targetIdx = getTabAtX(e.clientX);
+    // Clear preview colours
+    tabRefs.current.forEach((b) => { if (b) b.style.color = ""; });
+
+    if (targetIdx !== activeIdx) {
+      onSelect(tabs[targetIdx]!.id);
+    } else {
+      // Snap back to current tab
+      const pill = pillRef.current;
+      const btn = tabRefs.current[activeIdx];
+      const nav = navRef.current;
+      if (pill && btn && nav) {
+        const navRect = nav.getBoundingClientRect();
+        const btnRect = btn.getBoundingClientRect();
+        pill.style.transition = "left 0.38s cubic-bezier(0.34,1.56,0.64,1), width 0.38s cubic-bezier(0.34,1.56,0.64,1)";
+        pill.style.left = `${btnRect.left - navRect.left}px`;
+        pill.style.width = `${btnRect.width}px`;
+      }
+    }
+  }
+
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50">
       <div className="flex justify-center px-6 pb-[calc(env(safe-area-inset-bottom)+20px)]">
         {/* Ambient glow halo */}
         <div className="pointer-events-none absolute bottom-0 left-1/2 h-32 w-80 -translate-x-1/2 rounded-full bg-[rgba(57,255,20,0.1)] blur-[48px]" />
-        <nav className="magic-bottom-nav pointer-events-auto relative flex items-center gap-1 rounded-[28px] p-2 shadow-[0_0_40px_rgba(57,255,20,0.12)]">
-          {tabs.map((tab) => {
-            const active = tab.id === currentTab;
+        <nav
+          ref={navRef}
+          className="magic-bottom-nav pointer-events-auto relative flex items-center gap-1 rounded-[28px] p-2 shadow-[0_0_40px_rgba(57,255,20,0.12)] touch-none select-none"
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
+        >
+          {/* Sliding liquid pill */}
+          <div
+            ref={pillRef}
+            aria-hidden="true"
+            className="pointer-events-none absolute top-2 h-[calc(100%-16px)] rounded-[22px] bg-gradient-to-r from-[#4ADE80] to-[#22C55E] shadow-[0_0_22px_rgba(74,222,128,0.3)]"
+            style={{ left: 0, width: 0 }}
+          />
 
+          {tabs.map((tab, i) => {
+            const active = tab.id === currentTab;
             return (
               <button
                 key={tab.id}
+                ref={(el) => { tabRefs.current[i] = el; }}
                 type="button"
                 onClick={() => onSelect(tab.id)}
-                className={`relative flex items-center rounded-[22px] py-3.5 text-sm font-medium transition-all duration-350 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${active
-                  ? "bg-gradient-to-r from-[#4ADE80] to-[#22C55E] px-5 text-[#08110B] shadow-[0_0_22px_rgba(74,222,128,0.3)]"
-                  : "px-3.5 text-[#71717A] hover:text-[#A1A1AA]"
-                  }`}
+                className={`relative z-10 flex items-center rounded-[22px] py-3.5 text-sm font-medium transition-colors duration-200 ${
+                  active ? "px-5 text-[#08110B]" : "px-3.5 text-[#71717A] hover:text-[#A1A1AA]"
+                }`}
               >
-                <svg viewBox="0 0 24 24" className={`shrink-0 transition-all duration-350 ${active ? "size-[19px]" : "size-[18px]"}`}>
+                <svg viewBox="0 0 24 24" className={`shrink-0 ${active ? "size-[19px]" : "size-[18px]"}`}>
                   {tab.icon}
                 </svg>
                 <span
-                  className={`overflow-hidden whitespace-nowrap transition-all duration-350 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${active ? "ml-2 max-w-[80px] opacity-100" : "max-w-0 opacity-0"
-                    }`}
+                  className={`overflow-hidden whitespace-nowrap transition-all duration-350 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
+                    active ? "ml-2 max-w-[80px] opacity-100" : "max-w-0 opacity-0"
+                  }`}
                 >
                   {tab.label}
                 </span>

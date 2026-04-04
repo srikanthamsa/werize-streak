@@ -86,6 +86,15 @@ export default function RootLayout({
                   window.navigator.standalone === true ||
                   window.matchMedia("(display-mode: standalone)").matches;
                 if (isStandalone) {
+                  // Immediately hide body content so the page never flashes
+                  // through before the splash is painted.
+                  document.documentElement.style.background = "#0B0B0C";
+
+                  var style = document.createElement("style");
+                  style.id = "pwa-splash-style";
+                  style.textContent = "@keyframes pwaDot{0%,80%,100%{opacity:0.25;transform:scale(0.85)}40%{opacity:1;transform:scale(1)}} @keyframes pwaSplashIn{from{opacity:0;transform:scale(0.88)}to{opacity:1;transform:scale(1)}}";
+                  document.head.appendChild(style);
+
                   var el = document.createElement("div");
                   el.id = "pwa-splash-screen";
                   el.style.cssText = [
@@ -93,6 +102,7 @@ export default function RootLayout({
                     "display:flex","flex-direction:column",
                     "align-items:center","justify-content:center","gap:28px",
                     "background:#0B0B0C",
+                    "animation:pwaSplashIn 0.45s cubic-bezier(0.34,1.56,0.64,1) both",
                     "transition:opacity 0.4s ease",
                   ].join(";");
                   el.innerHTML = '<img src="/streak-logo-header-tight.png" alt="Streak" style="width:210px;height:auto;object-fit:contain;" />'
@@ -101,10 +111,11 @@ export default function RootLayout({
                     + '<div style="width:6px;height:6px;border-radius:50%;background:#39FF14;animation:pwaDot 1.4s ease-in-out 0.18s infinite;opacity:0.35;"></div>'
                     + '<div style="width:6px;height:6px;border-radius:50%;background:#39FF14;animation:pwaDot 1.4s ease-in-out 0.36s infinite;opacity:0.35;"></div>'
                     + '</div>';
-                  var style = document.createElement("style");
-                  style.textContent = "@keyframes pwaDot{0%,80%,100%{opacity:0.25;transform:scale(0.85)}40%{opacity:1;transform:scale(1)}}";
-                  document.head.appendChild(style);
-                  document.body.appendChild(el);
+                  // Append before body content loads so it's the first thing painted
+                  document.body
+                    ? document.body.prepend(el)
+                    : document.addEventListener("DOMContentLoaded", function() { document.body.prepend(el); });
+
                   var shownAt = Date.now();
                   var MIN_MS = 1800;
                   function removeSplash() {

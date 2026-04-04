@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ACCESS_TOKEN_MAX_AGE, REFRESH_TOKEN_MAX_AGE } from "@/lib/supabase/auth";
 
 export async function POST(request: Request) {
   try {
@@ -22,7 +23,7 @@ export async function POST(request: Request) {
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
       path: "/",
-      maxAge: body.expiresIn ?? 3600,
+      maxAge: ACCESS_TOKEN_MAX_AGE,
     });
 
     response.cookies.set("streak-refresh-token", body.refreshToken, {
@@ -30,7 +31,7 @@ export async function POST(request: Request) {
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
       path: "/",
-      maxAge: 60 * 60 * 24 * 30,
+      maxAge: REFRESH_TOKEN_MAX_AGE,
     });
 
     return response;

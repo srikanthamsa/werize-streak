@@ -352,7 +352,7 @@ export function OnboardingForm({
                     <span>
                       <span className="block text-sm font-semibold text-white">Appear on the company board</span>
                       <span className="mt-1 block text-sm leading-6 text-[#A1A1AA]">
-                        This is on by default: Private by default. Switch this on only if you want to show up in company-wide comparisons.
+                        On by default. Your hours and streak will show up in company-wide rankings. Uncheck if you'd rather keep your stats private.
                       </span>
                     </span>
                   </label>
@@ -399,12 +399,6 @@ export function OnboardingForm({
                     </div>
                   </div>
 
-                  <Link
-                    href="/"
-                    className="mt-6 inline-flex rounded-full bg-[#17171A] px-4 py-2 text-sm font-semibold text-white"
-                  >
-                    Return to dashboard
-                  </Link>
                 </div>
               </div>
             )}
