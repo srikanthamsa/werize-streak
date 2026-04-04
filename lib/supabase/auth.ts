@@ -47,26 +47,13 @@ export async function getAuthenticatedUser(): Promise<User | null> {
     }
   }
 
-  // Access token missing or expired — try to refresh silently
+  // Access token missing or expired — try to refresh silently.
+  // Note: we cannot write cookies here because this function is called from
+  // Server Components where cookies() is read-only. The middleware handles
+  // writing refreshed tokens back to the response.
   if (refreshToken) {
     const { data, error } = await supabase.auth.refreshSession({ refresh_token: refreshToken });
     if (!error && data.session && data.user) {
-      // Write the new tokens back into cookies so subsequent requests work
-      const cookieMutable = await cookies();
-      cookieMutable.set("streak-access-token", data.session.access_token, {
-        httpOnly: true,
-        sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
-        path: "/",
-        maxAge: ACCESS_TOKEN_MAX_AGE,
-      });
-      cookieMutable.set("streak-refresh-token", data.session.refresh_token, {
-        httpOnly: true,
-        sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
-        path: "/",
-        maxAge: REFRESH_TOKEN_MAX_AGE,
-      });
       return data.user;
     }
   }
