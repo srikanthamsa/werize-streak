@@ -1568,10 +1568,12 @@ function BottomNav({
   const pillLeft  = useMotionValue(0);
   const pillWidth = useMotionValue(0);
 
-  const activeIdx = tabs.findIndex((t) => t.id === currentTab);
-  const prevIdx   = useRef(-1);
-  const inited    = useRef(false);
-  const phase2Ref = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activeIdx    = tabs.findIndex((t) => t.id === currentTab);
+  const prevIdx      = useRef(-1);
+  const inited       = useRef(false);
+  const transitionId = useRef(0);
+
+  const [isMoving, setIsMoving] = useState(false);
 
   const dragRef = useRef<{
     startX: number; startLeft: number; startWidth: number;
@@ -1623,7 +1625,10 @@ function BottomNav({
     });
   }, [pillLeft]);
 
-  // ── Two-phase spring: leading edge fast → stretches → trailing edge follows ─
+  // Compact pill width (icon only, no label) used during transit
+  const COMPACT_WIDTH = 46; // INACT_PX*2 + ICON = 14*2+18
+
+  // ── Shrink → slide → expand animation ────────────────────────────────────
   useLayoutEffect(() => {
     const t = getTarget(activeIdx);
 
@@ -1635,30 +1640,27 @@ function BottomNav({
       return;
     }
 
-    if (phase2Ref.current) clearTimeout(phase2Ref.current);
-
-    const goRight  = activeIdx > prevIdx.current;
-    const curLeft  = pillLeft.get();
-    const curRight = curLeft + pillWidth.get();
     prevIdx.current = activeIdx;
+    const tid = ++transitionId.current;
+    setIsMoving(true);
 
-    if (goRight) {
-      // Right (leading) edge snaps to destination — pill stretches leftward
-      animate(pillWidth, t.left + t.width - curLeft, {
-        type: "spring", stiffness: 300, damping: 22,
-      });
-      phase2Ref.current = setTimeout(() => {
-        animate(pillLeft,  t.left,  { type: "spring", stiffness: 200, damping: 20 });
-        animate(pillWidth, t.width, { type: "spring", stiffness: 200, damping: 20 });
-      }, 50);
-    } else {
-      // Left (leading) edge snaps — pill stretches rightward
-      animate(pillLeft,  t.left,            { type: "spring", stiffness: 300, damping: 22 });
-      animate(pillWidth, curRight - t.left, { type: "spring", stiffness: 300, damping: 22 });
-      phase2Ref.current = setTimeout(() => {
-        animate(pillWidth, t.width, { type: "spring", stiffness: 200, damping: 20 });
-      }, 50);
-    }
+    // Shrink pill to compact size immediately
+    animate(pillWidth, COMPACT_WIDTH, { type: "spring", stiffness: 500, damping: 32 });
+
+    // Slide to target position, then expand and reveal text
+    animate(pillLeft, t.left, {
+      type: "spring", stiffness: 280, damping: 26,
+      onComplete: () => {
+        if (transitionId.current !== tid) return;
+        animate(pillWidth, t.width, {
+          type: "spring", stiffness: 280, damping: 22,
+          onComplete: () => {
+            if (transitionId.current !== tid) return;
+            setIsMoving(false);
+          },
+        });
+      },
+    });
   }, [activeIdx]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Drag ──────────────────────────────────────────────────────────────────
@@ -1671,6 +1673,9 @@ function BottomNav({
     if (e.clientX < pL - 12 || e.clientX > pR + 12) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     dragRef.current = { startX: e.clientX, startLeft: pillLeft.get(), startWidth: pillWidth.get() };
+    ++transitionId.current; // invalidate any in-flight expand onComplete
+    setIsMoving(true);
+    animate(pillWidth, COMPACT_WIDTH, { type: "spring", stiffness: 500, damping: 32 });
   }
 
   function onPointerMove(e: React.PointerEvent<HTMLElement>) {
@@ -1679,10 +1684,8 @@ function BottomNav({
     if (!d || !nav) return;
     const dx      = e.clientX - d.startX;
     const navW    = nav.getBoundingClientRect().width;
-    const stretch = Math.min(Math.abs(dx) * 0.12, 16);
-    const newLeft = Math.max(8, Math.min(navW - d.startWidth - 8, d.startLeft + dx));
+    const newLeft = Math.max(8, Math.min(navW - COMPACT_WIDTH - 8, d.startLeft + dx));
     pillLeft.set(newLeft);
-    pillWidth.set(d.startWidth + stretch);
     const hi = getTabAtX(e.clientX);
     tabRefs.current.forEach((b, i) => {
       if (b) b.style.color = i === hi && i !== activeIdx ? "rgba(255,255,255,0.55)" : "";
@@ -1695,11 +1698,20 @@ function BottomNav({
     tabRefs.current.forEach((b) => { if (b) b.style.color = ""; });
     const ti = getTabAtX(e.clientX);
     if (ti !== activeIdx) {
+      // Tab change — useLayoutEffect will handle the expand + setIsMoving(false)
       onSelect(tabs[ti]!.id);
     } else {
+      // Settled on same tab — snap back and expand
       const t = getTarget(activeIdx);
-      animate(pillLeft,  t.left,  { type: "spring", stiffness: 300, damping: 26 });
-      animate(pillWidth, t.width, { type: "spring", stiffness: 300, damping: 26 });
+      const tid = ++transitionId.current;
+      animate(pillLeft, t.left, { type: "spring", stiffness: 300, damping: 26 });
+      animate(pillWidth, t.width, {
+        type: "spring", stiffness: 280, damping: 22,
+        onComplete: () => {
+          if (transitionId.current !== tid) return;
+          setIsMoving(false);
+        },
+      });
     }
   }
 
@@ -1765,7 +1777,7 @@ function BottomNav({
                 <span
                   ref={(el) => { labelRefs.current[i] = el; }}
                   className={`overflow-hidden whitespace-nowrap transition-[max-width,opacity,margin] duration-300 ease-out ${
-                    active ? "ml-2 max-w-[80px] opacity-100" : "ml-0 max-w-0 opacity-0"
+                    active && !isMoving ? "ml-2 max-w-[80px] opacity-100" : "ml-0 max-w-0 opacity-0"
                   }`}
                 >
                   {tab.label}

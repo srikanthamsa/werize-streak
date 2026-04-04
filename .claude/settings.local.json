@@ -71,7 +71,10 @@
       "Bash(PATH=\"/opt/homebrew/bin:/opt/homebrew/Cellar/node/23.11.0/bin:$PATH\" npx next build)",
       "Bash(PATH=\"/opt/homebrew/bin:/opt/homebrew/Cellar/node/23.11.0/bin:$PATH\" node -e \"const p=require\\(''''./package.json''''\\); console.log\\(JSON.stringify\\({...p.dependencies,...p.devDependencies}, null, 2\\)\\)\")",
       "Bash(PATH=\"/opt/homebrew/bin:/opt/homebrew/Cellar/node/23.11.0/bin:$PATH\" npm install framer-motion)",
-      "Bash(/usr/local/bin/node node_modules/.bin/tsc --noEmit)"
+      "Bash(/usr/local/bin/node node_modules/.bin/tsc --noEmit)",
+      "Bash(nvm use:*)",
+      "Bash(/opt/homebrew/bin/node --version)",
+      "Bash(/usr/local/bin/node --version)"
     ]
   }
 }
