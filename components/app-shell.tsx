@@ -1560,154 +1560,132 @@ function BottomNav({
   currentTab: TabId;
   onSelect: (tab: TabId) => void;
 }) {
-  const navRef      = useRef<HTMLDivElement>(null);
-  const tabRefs     = useRef<(HTMLButtonElement | null)[]>([]);
-  // The pill layer div — we mutate its CSS filter directly for chroma effect
-  const pillLayerRef = useRef<HTMLDivElement>(null);
+  const navRef    = useRef<HTMLDivElement>(null);
+  const tabRefs   = useRef<(HTMLButtonElement | null)[]>([]);
+  const labelRefs = useRef<(HTMLSpanElement | null)[]>([]);
+  const pillRef   = useRef<HTMLDivElement>(null);
 
   const pillLeft  = useMotionValue(0);
   const pillWidth = useMotionValue(0);
-  // 0..1 — drives chromatic drop-shadow intensity (no pixel distortion)
-  const chromaAmt = useMotionValue(0);
 
-  const activeIdx   = tabs.findIndex((t) => t.id === currentTab);
-  const prevIdxRef  = useRef(-1);
-  const initialised = useRef(false);
-  const phase2Ref   = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const chromaRef   = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const correctRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activeIdx = tabs.findIndex((t) => t.id === currentTab);
+  const prevIdx   = useRef(-1);
+  const inited    = useRef(false);
+  const phase2Ref = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // --- Drag state ---
   const dragRef = useRef<{
-    startX: number;
-    pillStartLeft: number;
-    pillStartWidth: number;
+    startX: number; startLeft: number; startWidth: number;
   } | null>(null);
 
-  // Wire chromaAmt → CSS drop-shadow on the gooey pill layer (zero React re-renders).
-  // Chromatic aberration via offset red/blue drop-shadows — no pixel distortion.
+  // ── Compute FINAL pill geometry without reading transitioning DOM ──────────
+  // Uses label.scrollWidth (always intrinsic text width, even when max-width:0)
+  // and hardcoded Tailwind constants so the pill always targets the correct
+  // final size — no correction timeout needed.
+  function getTarget(newActiveIdx: number) {
+    // Tailwind values (1rem = 16px base):
+    //   nav p-2 → 8px   gap-1 → 4px
+    //   active   px-5 → 20px/side   ml-2 → 8px
+    //   inactive px-3.5 → 14px/side   icon size-[18px] → 18px
+    const NAV_PAD   = 8;
+    const GAP       = 4;
+    const ICON      = 18;
+    const ACT_PX    = 20;
+    const INACT_PX  = 14;
+    const LABEL_GAP = 8;
+
+    const widths = tabs.map((_, i) => {
+      const lw = labelRefs.current[i]?.scrollWidth ?? 0;
+      return i === newActiveIdx
+        ? ACT_PX * 2 + ICON + LABEL_GAP + lw
+        : INACT_PX * 2 + ICON;
+    });
+
+    let x = NAV_PAD;
+    for (let i = 0; i < newActiveIdx; i++) x += widths[i]! + GAP;
+
+    return { left: x, width: widths[newActiveIdx]! };
+  }
+
+  // ── Chromatic box-shadow driven by pill velocity (zero React re-renders) ──
   useEffect(() => {
-    return chromaAmt.on("change", (v) => {
-      const el = pillLayerRef.current;
+    const BASE = "0 0 22px rgba(57,255,20,0.5), inset 0 1px 0 rgba(255,255,255,0.18)";
+    return pillLeft.on("change", () => {
+      const el = pillRef.current;
       if (!el) return;
-      if (v < 0.03) {
-        el.style.filter = "url(#gooey-pill)";
+      const intensity = Math.min(Math.abs(pillLeft.getVelocity()) / 700, 1);
+      if (intensity < 0.04) {
+        el.style.boxShadow = BASE;
       } else {
-        const s = (v * 5).toFixed(2);
-        el.style.filter =
-          `url(#gooey-pill) drop-shadow(${s}px 0 1px rgba(255,70,70,0.55)) drop-shadow(-${s}px 0 1px rgba(70,130,255,0.55))`;
+        const s = (intensity * 4).toFixed(1);
+        el.style.boxShadow =
+          `${BASE}, -${s}px 0 8px rgba(255,0,0,0.5), ${s}px 0 8px rgba(0,0,255,0.5)`;
       }
     });
-  }, [chromaAmt]);
+  }, [pillLeft]);
 
-  // Measure a tab button relative to the nav container
-  const measure = (idx: number) => {
-    const nav = navRef.current;
-    const btn = tabRefs.current[idx];
-    if (!nav || !btn) return null;
-    const nr = nav.getBoundingClientRect();
-    const br = btn.getBoundingClientRect();
-    return { left: br.left - nr.left, right: br.right - nr.left, width: br.width };
-  };
-
-  // Main tab-switch animation
+  // ── Two-phase spring: leading edge fast → stretches → trailing edge follows ─
   useLayoutEffect(() => {
-    const target = measure(activeIdx);
-    if (!target) return;
+    const t = getTarget(activeIdx);
 
-    // First render: place immediately, no animation
-    if (!initialised.current) {
-      initialised.current = true;
-      prevIdxRef.current  = activeIdx;
-      pillLeft.set(target.left);
-      pillWidth.set(target.width);
+    if (!inited.current) {
+      inited.current  = true;
+      prevIdx.current = activeIdx;
+      pillLeft.set(t.left);
+      pillWidth.set(t.width);
       return;
     }
 
-    // Clear any pending timers
-    if (phase2Ref.current)  clearTimeout(phase2Ref.current);
-    if (chromaRef.current)  clearTimeout(chromaRef.current);
-    if (correctRef.current) clearTimeout(correctRef.current);
+    if (phase2Ref.current) clearTimeout(phase2Ref.current);
 
-    const goRight  = activeIdx > prevIdxRef.current;
+    const goRight  = activeIdx > prevIdx.current;
     const curLeft  = pillLeft.get();
-    const curWidth = pillWidth.get();
-    const curRight = curLeft + curWidth;
-    prevIdxRef.current = activeIdx;
-
-    // Kick chromatic aberration
-    animate(chromaAmt, 1, { type: "spring", stiffness: 900, damping: 14 });
+    const curRight = curLeft + pillWidth.get();
+    prevIdx.current = activeIdx;
 
     if (goRight) {
-      // Phase 1 — leading (right) edge jets forward; pill stretches across the gap
-      animate(pillWidth, target.right - curLeft, {
-        type: "spring", stiffness: 320, damping: 22, mass: 0.3,
+      // Right (leading) edge snaps to destination — pill stretches leftward
+      animate(pillWidth, t.left + t.width - curLeft, {
+        type: "spring", stiffness: 300, damping: 22,
       });
-      // Phase 2 — trailing (left) edge follows with bouncy lag
       phase2Ref.current = setTimeout(() => {
-        animate(pillLeft,  target.left,  { type: "spring", stiffness: 150, damping: 15, mass: 1.2 });
-        animate(pillWidth, target.width, { type: "spring", stiffness: 150, damping: 15, mass: 1.2 });
-      }, 48);
+        animate(pillLeft,  t.left,  { type: "spring", stiffness: 200, damping: 20 });
+        animate(pillWidth, t.width, { type: "spring", stiffness: 200, damping: 20 });
+      }, 50);
     } else {
-      // Phase 1 — leading (left) edge jets forward
-      animate(pillLeft,  target.left,            { type: "spring", stiffness: 320, damping: 22, mass: 0.3 });
-      animate(pillWidth, curRight - target.left, { type: "spring", stiffness: 320, damping: 22, mass: 0.3 });
-      // Phase 2 — trailing (right) edge follows with bouncy lag
+      // Left (leading) edge snaps — pill stretches rightward
+      animate(pillLeft,  t.left,            { type: "spring", stiffness: 300, damping: 22 });
+      animate(pillWidth, curRight - t.left, { type: "spring", stiffness: 300, damping: 22 });
       phase2Ref.current = setTimeout(() => {
-        animate(pillWidth, target.width, { type: "spring", stiffness: 150, damping: 15, mass: 1.2 });
-      }, 48);
+        animate(pillWidth, t.width, { type: "spring", stiffness: 200, damping: 20 });
+      }, 50);
     }
-
-    // Fade chromatic aberration out as motion settles
-    chromaRef.current = setTimeout(() => {
-      animate(chromaAmt, 0, { type: "spring", stiffness: 110, damping: 22 });
-    }, 190);
-
-    // Width correction: re-measure after the label's CSS max-w transition completes
-    correctRef.current = setTimeout(() => {
-      const t2 = measure(activeIdx);
-      if (!t2) return;
-      animate(pillLeft,  t2.left,  { type: "spring", stiffness: 380, damping: 36 });
-      animate(pillWidth, t2.width, { type: "spring", stiffness: 380, damping: 36 });
-    }, 400);
   }, [activeIdx]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // --- Drag handlers ---
+  // ── Drag ──────────────────────────────────────────────────────────────────
   function onPointerDown(e: React.PointerEvent<HTMLElement>) {
     const nav = navRef.current;
     if (!nav) return;
     const nr = nav.getBoundingClientRect();
-    const pL = pillLeft.get()  + nr.left;
+    const pL = pillLeft.get() + nr.left;
     const pR = pL + pillWidth.get();
     if (e.clientX < pL - 12 || e.clientX > pR + 12) return;
-
     e.currentTarget.setPointerCapture(e.pointerId);
-    dragRef.current = {
-      startX:         e.clientX,
-      pillStartLeft:  pillLeft.get(),
-      pillStartWidth: pillWidth.get(),
-    };
-    animate(chromaAmt, 0.5, { type: "spring", stiffness: 600, damping: 18 });
+    dragRef.current = { startX: e.clientX, startLeft: pillLeft.get(), startWidth: pillWidth.get() };
   }
 
   function onPointerMove(e: React.PointerEvent<HTMLElement>) {
-    const ds  = dragRef.current;
+    const d   = dragRef.current;
     const nav = navRef.current;
-    if (!ds || !nav) return;
-
-    const dx      = e.clientX - ds.startX;
+    if (!d || !nav) return;
+    const dx      = e.clientX - d.startX;
     const navW    = nav.getBoundingClientRect().width;
-    const pad     = 8;
-    const stretch = Math.min(Math.abs(dx) * 0.12, 18);
-    const newLeft = Math.max(pad, Math.min(navW - ds.pillStartWidth - pad, ds.pillStartLeft + dx));
-
+    const stretch = Math.min(Math.abs(dx) * 0.12, 16);
+    const newLeft = Math.max(8, Math.min(navW - d.startWidth - 8, d.startLeft + dx));
     pillLeft.set(newLeft);
-    pillWidth.set(ds.pillStartWidth + stretch);
-
-    const hoverIdx = getTabAtX(e.clientX);
+    pillWidth.set(d.startWidth + stretch);
+    const hi = getTabAtX(e.clientX);
     tabRefs.current.forEach((b, i) => {
-      if (!b) return;
-      b.style.color = i === hoverIdx && i !== activeIdx ? "rgba(255,255,255,0.5)" : "";
+      if (b) b.style.color = i === hi && i !== activeIdx ? "rgba(255,255,255,0.55)" : "";
     });
   }
 
@@ -1715,28 +1693,22 @@ function BottomNav({
     if (!dragRef.current) return;
     dragRef.current = null;
     tabRefs.current.forEach((b) => { if (b) b.style.color = ""; });
-
-    const targetIdx = getTabAtX(e.clientX);
-    if (targetIdx !== activeIdx) {
-      onSelect(tabs[targetIdx]!.id);
+    const ti = getTabAtX(e.clientX);
+    if (ti !== activeIdx) {
+      onSelect(tabs[ti]!.id);
     } else {
-      const t = measure(activeIdx);
-      if (t) {
-        animate(pillLeft,  t.left,  { type: "spring", stiffness: 340, damping: 28 });
-        animate(pillWidth, t.width, { type: "spring", stiffness: 340, damping: 28 });
-      }
-      animate(chromaAmt, 0, { type: "spring", stiffness: 140, damping: 22 });
+      const t = getTarget(activeIdx);
+      animate(pillLeft,  t.left,  { type: "spring", stiffness: 300, damping: 26 });
+      animate(pillWidth, t.width, { type: "spring", stiffness: 300, damping: 26 });
     }
   }
 
   function getTabAtX(clientX: number): number {
-    let closest = activeIdx;
-    let minDist = Infinity;
+    let closest = activeIdx, minDist = Infinity;
     tabRefs.current.forEach((b, i) => {
       if (!b) return;
-      const r  = b.getBoundingClientRect();
-      const cx = r.left + r.width / 2;
-      const d  = Math.abs(clientX - cx);
+      const r = b.getBoundingClientRect();
+      const d = Math.abs(clientX - (r.left + r.width / 2));
       if (d < minDist) { minDist = d; closest = i; }
     });
     return closest;
@@ -1745,62 +1717,30 @@ function BottomNav({
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50">
       <div className="flex justify-center px-6 pb-[calc(env(safe-area-inset-bottom)+20px)]">
-        {/* Ambient glow halo */}
-        <div className="pointer-events-none absolute bottom-0 left-1/2 h-32 w-80 -translate-x-1/2 rounded-full bg-[rgba(57,255,20,0.08)] blur-[48px]" />
-
-        {/*
-          Gooey SVG filter — applied to the isolated pill layer.
-          feGaussianBlur softens edges → feColorMatrix cranks alpha contrast to
-          threshold → edges snap back into crisp organic curves that merge/split
-          like a liquid drop as the pill stretches. Zero noise, zero pixelation.
-        */}
-        <svg width="0" height="0" style={{ position: "absolute", overflow: "hidden" }} aria-hidden="true">
-          <defs>
-            <filter id="gooey-pill" x="-30%" y="-40%" width="160%" height="180%">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="blur" />
-              <feColorMatrix
-                in="blur"
-                type="matrix"
-                values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -9"
-                result="goo"
-              />
-              {/* Composite crisp source on top so the pill interior stays sharp */}
-              <feComposite in="SourceGraphic" in2="goo" operator="atop" />
-            </filter>
-          </defs>
-        </svg>
+        {/* Ambient glow */}
+        <div className="pointer-events-none absolute bottom-0 left-1/2 h-32 w-80 -translate-x-1/2 rounded-full bg-[rgba(57,255,20,0.07)] blur-[48px]" />
 
         <nav
           ref={navRef}
-          className="magic-bottom-nav pointer-events-auto relative flex items-center gap-1 rounded-[28px] p-2 shadow-[0_0_40px_rgba(57,255,20,0.10)] touch-none select-none"
+          className="magic-bottom-nav pointer-events-auto relative flex items-center gap-1 rounded-[28px] p-2 touch-none select-none"
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
         >
-          {/*
-            Isolated pill layer — only the green pill lives here.
-            The gooey filter (+ runtime chroma drop-shadows) applies only to
-            this layer; the buttons above are unaffected and stay crisp.
-          */}
-          <div
-            ref={pillLayerRef}
+          {/* Single absolute pill — no SVG filters, pure spring + box-shadow */}
+          <motion.div
+            ref={pillRef}
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 overflow-visible"
-            style={{ filter: "url(#gooey-pill)" }}
-          >
-            <motion.div
-              className="absolute top-2 h-[calc(100%-16px)] rounded-[22px]"
-              style={{
-                left:       pillLeft,
-                width:      pillWidth,
-                background: "linear-gradient(135deg,#52FF2A 0%,#39FF14 50%,#28CC0F 100%)",
-                boxShadow:  "0 0 20px rgba(57,255,20,0.45), inset 0 1px 0 rgba(255,255,255,0.25)",
-              }}
-            />
-          </div>
+            className="pointer-events-none absolute top-2 h-[calc(100%-16px)] rounded-[22px]"
+            style={{
+              left:       pillLeft,
+              width:      pillWidth,
+              background: "linear-gradient(135deg, #52FF2A 0%, #39FF14 50%, #28CC0F 100%)",
+              boxShadow:  "0 0 22px rgba(57,255,20,0.5), inset 0 1px 0 rgba(255,255,255,0.18)",
+            }}
+          />
 
-          {/* Tab buttons — rendered above the pill layer, unfiltered */}
           {tabs.map((tab, i) => {
             const active = tab.id === currentTab;
             return (
@@ -1809,18 +1749,25 @@ function BottomNav({
                 ref={(el) => { tabRefs.current[i] = el; }}
                 type="button"
                 onClick={() => onSelect(tab.id)}
-                className={`relative z-10 flex items-center rounded-[22px] py-3.5 text-sm font-semibold transition-colors duration-300 ${
-                  active
-                    ? "px-5 text-[#07120A]"
-                    : "px-3.5 text-[#71717A] hover:text-[#A1A1AA]"
+                className={`relative z-10 flex items-center rounded-[22px] py-3.5 text-sm font-semibold transition-colors duration-200 ${
+                  active ? "px-5 text-[#07120A]" : "px-3.5 text-[#71717A] hover:text-[#A1A1AA]"
                 }`}
               >
-                <svg viewBox="0 0 24 24" className={`shrink-0 transition-all duration-300 ${active ? "size-[18px]" : "size-[18px]"}`}>
+                <svg viewBox="0 0 24 24" className="size-[18px] shrink-0">
                   {tab.icon}
                 </svg>
-                <span className={`overflow-hidden whitespace-nowrap transition-all duration-[360ms] ease-[cubic-bezier(0.34,1.4,0.64,1)] ${
-                  active ? "ml-2 max-w-[80px] opacity-100" : "max-w-0 opacity-0"
-                }`}>
+                {/*
+                  Always in DOM. Width animates 0→auto via CSS.
+                  scrollWidth (used by getTarget) returns intrinsic text width
+                  even when max-width is 0, so the pill knows its final size
+                  immediately — no correction timeout needed.
+                */}
+                <span
+                  ref={(el) => { labelRefs.current[i] = el; }}
+                  className={`overflow-hidden whitespace-nowrap transition-[max-width,opacity,margin] duration-300 ease-out ${
+                    active ? "ml-2 max-w-[80px] opacity-100" : "ml-0 max-w-0 opacity-0"
+                  }`}
+                >
                   {tab.label}
                 </span>
               </button>
