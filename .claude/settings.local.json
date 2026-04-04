@@ -62,7 +62,8 @@
       "Bash(python3 -c \"import torch; print\\(''''torch'''', torch.__version__\\)\")",
       "Bash(PATH=/opt/homebrew/bin:$PATH pip3 install pillow-simd)",
       "Bash(python3 -c \":*)",
-      "Bash(PATH=\"/opt/homebrew/bin:$PATH\" python3 -c \":*)"
+      "Bash(PATH=\"/opt/homebrew/bin:$PATH\" python3 -c \":*)",
+      "Bash(sips -g pixelWidth -g pixelHeight -g fileSize /Users/srikanthamsa/dev/logout/public/streak-app-icon.png)"
     ]
   }
 }

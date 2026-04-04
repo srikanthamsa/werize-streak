@@ -242,41 +242,41 @@ export function calculateStreakData(entries: AttendanceDay[], todayDateKey = toL
 
   const message = todayIsWeekend
     ? currentStreak > 0
-      ? "You're safe. Streak continues."
+      ? "Streak continues."
       : "It's the weekend. No work required."
     : !todayEntry.swipes.length
-    ? currentStreak > 0
-      ? "Clock in to protect the streak."
-      : "Clock in to start the streak."
-    : realTimeStatus === "safe"
-    ? "Day completed cleanly."
-    : realTimeStatus === "risk"
-    ? "Keep going to secure the day."
-    : currentStreak > 0
-    ? `You’re ${formatMinutes(remainingMinutes)} short. Streak will break.`
-    : `You’re ${formatMinutes(remainingMinutes)} short. Clear the day to start your streak.`;
+      ? currentStreak > 0
+        ? "Clock in to protect the streak."
+        : "Clock in to start the streak."
+      : realTimeStatus === "safe"
+        ? "Day completed cleanly."
+        : realTimeStatus === "risk"
+          ? "Keep going to secure the day."
+          : currentStreak > 0
+            ? `You’re ${formatMinutes(remainingMinutes)} short. Streak will break.`
+            : `You’re ${formatMinutes(remainingMinutes)} short. Clear the day to start your streak.`;
 
   const banner = todayIsWeekend
     ? null
     : !todayEntry.swipes.length
-    ? null
-    : realTimeStatus === "safe"
-    ? null
-    : `You are ${formatMinutes(remainingMinutes)} short. Your streak is at risk.`;
+      ? null
+      : realTimeStatus === "safe"
+        ? null
+        : `You are ${formatMinutes(remainingMinutes)} short. Your streak is at risk.`;
 
   const endOfDayFeedback = todayIsWeekend
     ? currentStreak > 0
       ? "Streak is safe over the weekend."
       : "First streak is waiting. Start Monday!"
     : recoveredToday
-    ? "Clutched it. Streak saved."
-    : realTimeStatus === "safe"
-    ? "Streak continued"
-    : streakStatus === "broken" && currentStreak > 0
-    ? "Streak broken. Start again."
-    : currentStreak > 0
-    ? "Streak at risk 👀"
-    : "First streak is waiting.";
+      ? "Clutched it. Streak saved."
+      : realTimeStatus === "safe"
+        ? "Streak continued"
+        : streakStatus === "broken" && currentStreak > 0
+          ? "Streak broken. Start again."
+          : currentStreak > 0
+            ? "Streak at risk 👀"
+            : "First streak is waiting.";
 
   return {
     currentStreak,
@@ -377,7 +377,7 @@ export function formatRelativeTime(date: string | Date) {
   if (diffInHours < 24) return `${diffInHours}h ago`;
   const diffInDays = Math.floor(diffInHours / 24);
   if (diffInDays < 7) return `${diffInDays}d ago`;
-  
+
   return new Intl.DateTimeFormat("en-IN", {
     day: "numeric",
     month: "short",
