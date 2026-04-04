@@ -76,13 +76,13 @@ const tabs: TabDefinition[] = [
     id: "notifications",
     label: "Activity",
     icon: (
-      <path 
+      <path
         d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"
-        stroke="currentColor" 
-        strokeWidth="1.8" 
-        fill="none" 
-        strokeLinecap="round" 
-        strokeLinejoin="round" 
+        stroke="currentColor"
+        strokeWidth="1.8"
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
     ),
   },
@@ -282,8 +282,8 @@ function LeaveButton({ profileId, syncUserId, initiallyMarked = false, monthEntr
         </div>
       </div>
       <div className="flex items-center gap-2 mt-2">
-        <input 
-          type="date" 
+        <input
+          type="date"
           value={dateStr}
           onChange={(e) => setDateStr(e.target.value)}
           className="rounded-xl bg-[#1A1A1D] px-3 py-2.5 text-sm font-medium text-white focus:outline-none focus:ring-1 focus:ring-[#39FF14] border border-[#2d2d33] appearance-none"
@@ -383,11 +383,10 @@ function MiniCard({
 }) {
   return (
     <div
-      className={`rounded-[22px] px-4 py-4 ${
-        highlight
-          ? "bg-[linear-gradient(180deg,rgba(57,255,20,0.22),rgba(57,255,20,0.09))] shadow-[0_0_34px_rgba(57,255,20,0.18)]"
-          : "bg-[#17171A]"
-      }`}
+      className={`rounded-[22px] px-4 py-4 ${highlight
+        ? "bg-[linear-gradient(180deg,rgba(57,255,20,0.22),rgba(57,255,20,0.09))] shadow-[0_0_34px_rgba(57,255,20,0.18)]"
+        : "bg-[#17171A]"
+        }`}
     >
       <p className="text-[12px] uppercase tracking-[0.18em] text-[#71717A]">{title}</p>
       <p className="mt-3 text-[22px] font-semibold tracking-[-0.03em] text-white">{value}</p>
@@ -455,11 +454,11 @@ function TodayView(data: DashboardData) {
     100,
     Math.round((data.monthSummary.actualMinutesToDate / Math.max(1, totalMonthlyMinutes)) * 100),
   ));
-  const progressColorClass = data.monthSummary.balanceMinutes >= 0 
+  const progressColorClass = data.monthSummary.balanceMinutes >= 0
     ? "bg-[linear-gradient(90deg,#7CFF61,#39FF14,#20E70A)] shadow-[0_0_30px_rgba(57,255,20,0.24)]"
     : data.monthSummary.balanceMinutes >= -60
-    ? "bg-[linear-gradient(90deg,#FDE68A,#FBBF24,#F59E0B)] shadow-[0_0_30px_rgba(251,191,36,0.24)]"
-    : "bg-[linear-gradient(90deg,#FCA5A5,#F87171,#EF4444)] shadow-[0_0_30px_rgba(248,113,113,0.24)]";
+      ? "bg-[linear-gradient(90deg,#FDE68A,#FBBF24,#F59E0B)] shadow-[0_0_30px_rgba(251,191,36,0.24)]"
+      : "bg-[linear-gradient(90deg,#FCA5A5,#F87171,#EF4444)] shadow-[0_0_30px_rgba(248,113,113,0.24)]";
   const hasStartedToday = data.todayEntry.swipes.length > 0;
   const isOnLeaveToday = data.todayEntry.syncSource === "manual_leave";
   const isTodayWeekend = isWeekend(data.todayEntry.date);
@@ -475,31 +474,31 @@ function TodayView(data: DashboardData) {
   const statusCopy = isOnLeaveToday
     ? "Enjoy your leave today."
     : status.label === "Behind"
-    ? "Behind today. Stay longer."
-    : status.label === "Risk"
-    ? "Close, but not clear."
-    : "Safe to leave.";
+      ? "Behind today. Stay longer."
+      : status.label === "Risk"
+        ? "Close, but not clear."
+        : "Safe to leave.";
   const firstSwipeLabel = formatDisplayTime(data.profile.firstSwipeAt);
   const ifLeaveNow = calculateWorkedMinutes(data.todayEntry.swipes);
   const leaveNowCopy = !hasStartedToday
     ? "Walk in first. We will tell you the cost of leaving once the day actually starts."
     : minutesRemaining <= 0
-    ? "Leave now and the day still closes clean."
-    : ifLeaveNow < HALF_DAY_MINUTES
-    ? `Leave now and this risks falling below the ${formatMinutes(HALF_DAY_MINUTES)} floor.`
-    : `Leave now and you land ${formatMinutes(minutesRemaining)} short today.`;
+      ? "Leave now and the day still closes clean."
+      : ifLeaveNow < HALF_DAY_MINUTES
+        ? `Leave now and this risks falling below the ${formatMinutes(HALF_DAY_MINUTES)} floor.`
+        : `Leave now and you land ${formatMinutes(minutesRemaining)} short today.`;
   const streakTone = data.streak.realTimeStatus === "safe"
     ? "bg-[rgba(57,255,20,0.12)] text-[#7CFF61]"
     : data.streak.realTimeStatus === "risk"
-    ? "bg-[rgba(253,230,138,0.12)] text-[#FDE68A]"
-    : "bg-[rgba(248,113,113,0.12)] text-[#F87171]";
+      ? "bg-[rgba(253,230,138,0.12)] text-[#FDE68A]"
+      : "bg-[rgba(248,113,113,0.12)] text-[#F87171]";
   const streakLabel = data.streak.currentStreak === 0
     ? "Start today"
     : data.streak.realTimeStatus === "safe"
-    ? "Safe today"
-    : data.streak.realTimeStatus === "risk"
-    ? "Target pending"
-    : "At risk";
+      ? "Safe today"
+      : data.streak.realTimeStatus === "risk"
+        ? "Target pending"
+        : "At risk";
 
   const daysLeft = Math.max(1, data.monthSummary.totalWorkingDays - data.monthSummary.workingDaysElapsed);
   const recoveryStep = data.monthSummary.balanceMinutes < 0
@@ -510,8 +509,8 @@ function TodayView(data: DashboardData) {
     : 0;
 
   const isBankPositive = data.monthSummary.balanceMinutes >= 0;
-  const timeBankBg = isBankPositive 
-    ? "bg-[rgba(57,255,20,0.03)] border border-[rgba(57,255,20,0.1)] shadow-[0_0_30px_rgba(57,255,20,0.05)_inset]" 
+  const timeBankBg = isBankPositive
+    ? "bg-[rgba(57,255,20,0.03)] border border-[rgba(57,255,20,0.1)] shadow-[0_0_30px_rgba(57,255,20,0.05)_inset]"
     : "bg-[rgba(248,113,113,0.03)] border border-[rgba(248,113,113,0.1)] shadow-[0_0_30px_rgba(248,113,113,0.05)_inset]";
 
   return (
@@ -533,23 +532,23 @@ function TodayView(data: DashboardData) {
         <div className="relative mt-3">
           <p className="text-base text-[#A1A1AA]">
             {isTodayWeekend
-              ? "It's the weekend. No targets today — your average is locked in."
+              ? "It's the weekend. Enjoy!."
               : !hasStartedToday
-              ? "Go to office first. Your average starts updating after the first swipe."
-              : minutesRemaining <= 0
-              ? "You have already cleared the day."
-              : `You still need ${formatMinutes(minutesRemaining)} if you want zero regret later.`}
+                ? "Go to office first. Your average starts updating after the first swipe."
+                : minutesRemaining <= 0
+                  ? "You have already cleared the day."
+                  : `You still need ${formatMinutes(minutesRemaining)} if you want zero regret later.`}
           </p>
         </div>
 
         <div className={`mt-6 inline-flex items-center gap-3 rounded-full px-4 py-3 text-sm ${isTodayWeekend ? "bg-[#17171A] text-[#A1A1AA]" : hasStartedToday ? status.tone : "bg-[#17171A] text-[#A1A1AA]"}`}>
           <span className={`h-2.5 w-2.5 rounded-full ${isTodayWeekend ? "bg-[#71717A]" : hasStartedToday ? (status.label === "Behind" ? "bg-[#F87171] shadow-[0_0_18px_#F87171]" : "bg-[#4ADE80] shadow-[0_0_18px_#4ADE80]") : "bg-gradient-to-tr from-[#F59E0B] to-[#FDE047] shadow-[0_0_12px_rgba(253,224,71,0.5)]"}`} />
-          <span>{isTodayWeekend ? "Weekend — no work required." : hasStartedToday ? statusCopy : "Day not started yet."}</span>
+          <span>{isTodayWeekend ? "Rest well!" : hasStartedToday ? statusCopy : "Day not started yet."}</span>
         </div>
 
         <div className="mt-8">
           <div className="magic-tech-label mb-2 flex justify-between text-[11px] text-[#71717A]">
-            <span>month progress</span>
+            <span>monthly progress</span>
             <span>{formatMinutes(data.monthSummary.actualMinutesToDate)} / {formatMinutes(totalMonthlyMinutes)}</span>
           </div>
 
@@ -644,13 +643,13 @@ function TodayView(data: DashboardData) {
                   Leave
                 </h1>
                 <p className="mt-4 text-sm text-[#A1A1AA]">
-                  You’re officially off the clock today. Check back tomorrow.
+                  You're officially off the clock today. Check back tomorrow.
                 </p>
               </div>
             ) : isTodayWeekend ? (
               <div className="flex flex-col items-center justify-center gap-2">
                 <h1 className="text-[58px] font-semibold leading-none tracking-[-0.02em] text-white sm:text-[78px]">
-                  Weekend
+                  Rest Day!
                 </h1>
                 <p className="mt-4 text-sm text-[#A1A1AA]">
                   No office today. Enjoy your break.
@@ -670,8 +669,8 @@ function TodayView(data: DashboardData) {
                   {!hasStartedToday
                     ? "Go to office first."
                     : minutesRemaining <= 0
-                    ? "You are safe to leave now"
-                    : "You’re good to leave by then"}
+                      ? "You are safe to leave now"
+                      : "You're good to leave by then"}
                 </p>
               </>
             )}
@@ -687,15 +686,13 @@ function TodayView(data: DashboardData) {
         </GlowCard>
 
         <div className="flex flex-col gap-5 lg:col-span-4 lg:gap-6">
-          <div className={`relative overflow-hidden rounded-[28px] p-6 ${
-            data.monthSummary.balanceMinutes >= 0
-              ? "bg-[linear-gradient(135deg,rgba(57,255,20,0.18)_0%,rgba(57,255,20,0.07)_100%)] border border-[rgba(57,255,20,0.2)] shadow-[0_0_40px_rgba(57,255,20,0.1)]" 
-              : "bg-[linear-gradient(135deg,rgba(248,113,113,0.22)_0%,rgba(220,38,38,0.10)_100%)] border border-[rgba(248,113,113,0.25)] shadow-[0_0_40px_rgba(248,113,113,0.12)]"
-          }`}>
-            <p className="magic-tech-label text-xs text-[#A1A1AA]">TIME BANK</p>
-            <h2 className={`mt-2 text-4xl font-semibold tracking-[-0.04em] ${
-              data.monthSummary.balanceMinutes >= 0 ? "text-[#4ADE80]" : "text-[#F87171]"
+          <div className={`relative overflow-hidden rounded-[28px] p-6 ${data.monthSummary.balanceMinutes >= 0
+            ? "bg-[linear-gradient(135deg,rgba(57,255,20,0.18)_0%,rgba(57,255,20,0.07)_100%)] border border-[rgba(57,255,20,0.2)] shadow-[0_0_40px_rgba(57,255,20,0.1)]"
+            : "bg-[linear-gradient(135deg,rgba(248,113,113,0.22)_0%,rgba(220,38,38,0.10)_100%)] border border-[rgba(248,113,113,0.25)] shadow-[0_0_40px_rgba(248,113,113,0.12)]"
             }`}>
+            <p className="magic-tech-label text-xs text-[#A1A1AA]">TIME BANK</p>
+            <h2 className={`mt-2 text-4xl font-semibold tracking-[-0.04em] ${data.monthSummary.balanceMinutes >= 0 ? "text-[#4ADE80]" : "text-[#F87171]"
+              }`}>
               {data.monthSummary.balanceMinutes >= 0 ? "+" : "-"}
               {formatMinutes(Math.abs(data.monthSummary.balanceMinutes))}
             </h2>
@@ -830,7 +827,7 @@ function InsightsView({ monthEntries, monthSummary }: Pick<DashboardData, "month
     .filter(e => e.swipes.length >= 2 && e.syncSource !== "manual_leave")
     .map(e => ({ date: e.date, minutes: calculateWorkedMinutes(e.swipes), swipes: e.swipes }))
     .sort((a, b) => b.minutes - a.minutes);
-    
+
   // Burnout Warning
   const sortedByDateDesc = [...validEntries].sort((a, b) => b.date.localeCompare(a.date));
   const lastDays = sortedByDateDesc.slice(0, 3);
@@ -839,12 +836,12 @@ function InsightsView({ monthEntries, monthSummary }: Pick<DashboardData, "month
   // Late Arrival Tax
   const parseTimeValue = (swipe: string) => {
     const d = new Date(swipe);
-    return d.getHours() * 60 + d.getMinutes(); 
+    return d.getHours() * 60 + d.getMinutes();
   };
   const entriesWithTime = validEntries.map(e => ({
     ...e,
     arrivalMins: parseTimeValue(e.swipes[0])
-  })).sort((a,b) => a.arrivalMins - b.arrivalMins);
+  })).sort((a, b) => a.arrivalMins - b.arrivalMins);
 
   const medianArrival = entriesWithTime[Math.floor(entriesWithTime.length / 2)]?.arrivalMins ?? 600;
   const lateEntries = entriesWithTime.filter(e => e.arrivalMins > medianArrival + 30);
@@ -858,11 +855,11 @@ function InsightsView({ monthEntries, monthSummary }: Pick<DashboardData, "month
   const weekdayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   const weekdayStats = validEntries.reduce((acc, e) => {
     const d = new Date(e.date).getDay();
-    if(!acc[d]) acc[d] = { count: 0, total: 0 };
+    if (!acc[d]) acc[d] = { count: 0, total: 0 };
     acc[d].count++;
     acc[d].total += e.minutes;
     return acc;
-  }, {} as Record<number, {count: number, total: number}>);
+  }, {} as Record<number, { count: number, total: number }>);
 
   const weekdayAverages = Object.entries(weekdayStats).map(([day, stats]) => ({
     day: weekdayNames[Number(day)],
@@ -880,12 +877,12 @@ function InsightsView({ monthEntries, monthSummary }: Pick<DashboardData, "month
           {isAhead ? "Coast into Friday" : "Recovery Mode"}
         </h2>
         <p className="mt-3 text-[#A1A1AA]">
-          {isAhead 
+          {isAhead
             ? `You have a surplus of ${formatMinutes(monthSummary.balanceMinutes)}. You can afford to drop your pace to ${formatMinutes(monthSummary.recommendedDailyAverageMinutes)}/day for the rest of the month.`
             : `You are down ${formatMinutes(Math.abs(monthSummary.balanceMinutes))}. You need to average ${formatMinutes(monthSummary.recommendedDailyAverageMinutes)}/day to recover your standing by the end of the month.`
           }
         </p>
-        
+
         {isBurningOut ? (
           <div className="mt-6 rounded-2xl bg-[rgba(251,191,36,0.1)] p-4 border border-[rgba(251,191,36,0.2)]">
             <p className="font-semibold text-[#FBBF24]">⚠️ Burnout Warning</p>
@@ -944,20 +941,20 @@ function InsightsView({ monthEntries, monthSummary }: Pick<DashboardData, "month
             <p className="text-sm text-[#A1A1AA]">Best / Worst Days</p>
             {bestDay && worstDay ? (
               <div className="mt-4 flex flex-col gap-4">
-                 <div className="flex items-center justify-between">
-                   <div className="flex items-center gap-3">
-                     <span className="flex h-6 items-center rounded-sm bg-[rgba(57,255,20,0.1)] px-2 text-[10px] font-bold uppercase tracking-wider text-[#39FF14]">Peak</span>
-                     <p className="text-base text-white">{bestDay.day}s</p>
-                   </div>
-                   <p className="text-sm font-medium text-[#A1A1AA]">Avg {formatMinutes(Math.round(bestDay.avg))}</p>
-                 </div>
-                 <div className="flex items-center justify-between">
-                   <div className="flex items-center gap-3">
-                     <span className="flex h-6 items-center rounded-sm bg-[rgba(248,113,113,0.1)] px-2 text-[10px] font-bold uppercase tracking-wider text-[#F87171]">Drag</span>
-                     <p className="text-base text-white">{worstDay.day}s</p>
-                   </div>
-                   <p className="text-sm font-medium text-[#A1A1AA]">Avg {formatMinutes(Math.round(worstDay.avg))}</p>
-                 </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-6 items-center rounded-sm bg-[rgba(57,255,20,0.1)] px-2 text-[10px] font-bold uppercase tracking-wider text-[#39FF14]">Peak</span>
+                    <p className="text-base text-white">{bestDay.day}s</p>
+                  </div>
+                  <p className="text-sm font-medium text-[#A1A1AA]">Avg {formatMinutes(Math.round(bestDay.avg))}</p>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-6 items-center rounded-sm bg-[rgba(248,113,113,0.1)] px-2 text-[10px] font-bold uppercase tracking-wider text-[#F87171]">Drag</span>
+                    <p className="text-base text-white">{worstDay.day}s</p>
+                  </div>
+                  <p className="text-sm font-medium text-[#A1A1AA]">Avg {formatMinutes(Math.round(worstDay.avg))}</p>
+                </div>
               </div>
             ) : (
               <div className="mt-4 text-sm text-[#A1A1AA]">Not enough data to calculate best/worst days yet.</div>
@@ -972,11 +969,11 @@ function InsightsView({ monthEntries, monthSummary }: Pick<DashboardData, "month
                   {lateTax > 30 ? `Cost: +${formatMinutes(Math.round(lateTax))}` : lateTax < -30 ? `Cut: -${formatMinutes(Math.abs(Math.round(lateTax)))}` : `No heavy tax`}
                 </p>
                 <p className="mt-2 text-sm text-[#A1A1AA] leading-relaxed">
-                  {lateTax > 30 
+                  {lateTax > 30
                     ? `When you arrive >30m after your normal time, you end up staying ${formatMinutes(Math.round(lateTax))} longer on average to compensate.`
                     : lateTax < -30
-                    ? `When you arrive >30m late, you tend to cut your day short by ${formatMinutes(Math.abs(Math.round(lateTax)))}.`
-                    : `Your arrival time doesn't heavily impact your overall hours worked.`}
+                      ? `When you arrive >30m late, you tend to cut your day short by ${formatMinutes(Math.abs(Math.round(lateTax)))}.`
+                      : `Your arrival time doesn't heavily impact your overall hours worked.`}
                 </p>
               </div>
             ) : (
@@ -995,26 +992,25 @@ function NotificationsView({ notifications, profile }: { notifications: any[], p
   return (
     <div className="grid w-full max-w-6xl grid-cols-1 gap-4">
       <h2 className="mb-2 text-2xl font-semibold tracking-[-0.04em] text-white">Activity</h2>
-      
+
       {notifications.length > 0 ? (
         notifications.map(n => {
           const isDeleting = deletingIds.has(n.id);
           return (
             <div key={n.id} className={`flex items-start gap-4 rounded-[22px] bg-[#17171A] p-5 shadow-sm transition hover:bg-[#1a1a1e] ${isDeleting ? "opacity-50" : ""}`}>
-              <div className={`mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border ${
-                n.type === "achievement" ? "bg-[rgba(251,191,36,0.1)] border-[rgba(251,191,36,0.2)] text-[#FBBF24]" :
+              <div className={`mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border ${n.type === "achievement" ? "bg-[rgba(251,191,36,0.1)] border-[rgba(251,191,36,0.2)] text-[#FBBF24]" :
                 n.type === "streak" ? "bg-[rgba(248,113,113,0.1)] border-[rgba(248,113,113,0.2)] text-[#F87171]" :
-                n.type === "new_join" ? "bg-[rgba(57,255,20,0.1)] border-[rgba(57,255,20,0.2)] text-[#39FF14]" :
-                "bg-[rgba(161,161,170,0.1)] border-[rgba(161,161,170,0.2)] text-[#A1A1AA]"
-              }`}>
+                  n.type === "new_join" ? "bg-[rgba(57,255,20,0.1)] border-[rgba(57,255,20,0.2)] text-[#39FF14]" :
+                    "bg-[rgba(161,161,170,0.1)] border-[rgba(161,161,170,0.2)] text-[#A1A1AA]"
+                }`}>
                 {n.type === "achievement" ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="7" /><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" /></svg>
                 ) : n.type === "streak" ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.256 1.185-3.103a2.5 2.5 0 0 0 3.315 3.603z"/></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.256 1.185-3.103a2.5 2.5 0 0 0 3.315 3.603z" /></svg>
                 ) : n.type === "new_join" ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
                 ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="m12 8 4 4-4 4"/><path d="M8 12h7"/></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="m12 8 4 4-4 4" /><path d="M8 12h7" /></svg>
                 )}
               </div>
               <div className="flex-1">
@@ -1026,7 +1022,7 @@ function NotificationsView({ notifications, profile }: { notifications: any[], p
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button 
+                    <button
                       onClick={async () => {
                         setDeletingIds(prev => new Set(prev).add(n.id));
                         const res = await deleteNotificationAction(n.id);
@@ -1043,14 +1039,14 @@ function NotificationsView({ notifications, profile }: { notifications: any[], p
                       className="text-[#71717A] hover:text-[#F87171] transition p-2 disabled:opacity-50"
                     >
                       {isDeleting ? (
-                        <svg className="h-4 w-4 animate-spin text-[#F87171]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                        <svg className="h-4 w-4 animate-spin text-[#F87171]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
                       ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg>
                       )}
                     </button>
                   </div>
                 </div>
-                
+
                 <div className="mt-3">
                   <p className="text-[12px] uppercase tracking-wider text-[#71717A] font-medium">{formatRelativeTime(n.created_at)}</p>
                 </div>
@@ -1186,10 +1182,10 @@ function LeaderboardView({
           <div className="mt-6 space-y-3">
             {rankedEntries.map((entry, index) => {
               const tags = getLeaderboardTags(entry, visibleEntries);
-              const rankColor = index === 0 ? "text-[#FBBF24]" 
-                : index === 1 ? "text-[#9CA3AF]" 
-                : index === 2 ? "text-[#B45309]" 
-                : "text-white";
+              const rankColor = index === 0 ? "text-[#FBBF24]"
+                : index === 1 ? "text-[#9CA3AF]"
+                  : index === 2 ? "text-[#B45309]"
+                    : "text-white";
               return (
                 <div key={entry.id} className="rounded-[22px] bg-[#17171A] px-4 py-4">
                   <div className="flex items-start justify-between gap-4">
@@ -1276,12 +1272,12 @@ function ProfileView({
   const selectedFunFact = !selectedEntry
     ? ""
     : selectedEntry.swipes.length <= 1
-    ? "Thin day. This one probably needs attention."
-    : selectedWorkedMinutes >= DAILY_TARGET_MINUTES
-    ? "Clean day. You cleared the line."
-    : selectedWorkedMinutes >= HALF_DAY_MINUTES
-    ? "Half-day safe, but not a full clear."
-    : "Below half-day floor. This one was expensive.";
+      ? "Thin day. This one probably needs attention."
+      : selectedWorkedMinutes >= DAILY_TARGET_MINUTES
+        ? "Clean day. You cleared the line."
+        : selectedWorkedMinutes >= HALF_DAY_MINUTES
+          ? "Half-day safe, but not a full clear."
+          : "Below half-day floor. This one was expensive.";
 
   return (
     <div className="grid w-full max-w-6xl grid-cols-12 gap-6">
@@ -1360,34 +1356,33 @@ function ProfileView({
         <GlowCard className="p-8">
           <p className="magic-tech-label text-xs text-[#A1A1AA]">NOTIFICATIONS</p>
           <div className="mt-3">
-             <h2 className="text-2xl font-semibold tracking-[-0.04em] text-white">Mobile Alerts</h2>
-             <p className="mt-2 text-sm text-[#A1A1AA]">Get a notification on your phone the moment you clear your 9 hours or when someone joins the leaderboard.</p>
-             <div className="mt-6 flex flex-wrap items-center gap-3">
-               <button
-                 className={`group rounded-full px-5 py-3 text-sm font-semibold transition flex items-center gap-2 ${
-                   pushEnabled
-                     ? "bg-[rgba(57,255,20,0.1)] border border-[rgba(57,255,20,0.2)] text-[#4ADE80] cursor-default"
-                     : "bg-[#17171A] border border-[#2d2d33] text-white hover:bg-[#1f1f24]"
-                 }`}
-                 onClick={!pushEnabled ? onEnableNotifications : undefined}
-               >
-                 {pushEnabled ? (
-                   <>
-                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-                     <span>Enabled</span>
-                   </>
-                 ) : "Enable Push Notifications"}
-               </button>
-               {pushEnabled && (
-                 <button
-                   onClick={onEnableNotifications}
-                   className="group rounded-full px-5 py-3 text-sm font-semibold transition flex items-center gap-2 bg-[rgba(248,113,113,0.1)] border border-[rgba(248,113,113,0.2)] text-[#F87171] hover:bg-[rgba(248,113,113,0.15)]"
-                 >
-                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                   <span>Turn Off</span>
-                 </button>
-               )}
-             </div>
+            <h2 className="text-2xl font-semibold tracking-[-0.04em] text-white">Mobile Alerts</h2>
+            <p className="mt-2 text-sm text-[#A1A1AA]">Get a notification on your phone the moment you clear your 9 hours or when someone joins the leaderboard.</p>
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <button
+                className={`group rounded-full px-5 py-3 text-sm font-semibold transition flex items-center gap-2 ${pushEnabled
+                  ? "bg-[rgba(57,255,20,0.1)] border border-[rgba(57,255,20,0.2)] text-[#4ADE80] cursor-default"
+                  : "bg-[#17171A] border border-[#2d2d33] text-white hover:bg-[#1f1f24]"
+                  }`}
+                onClick={!pushEnabled ? onEnableNotifications : undefined}
+              >
+                {pushEnabled ? (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                    <span>Enabled</span>
+                  </>
+                ) : "Enable Push Notifications"}
+              </button>
+              {pushEnabled && (
+                <button
+                  onClick={onEnableNotifications}
+                  className="group rounded-full px-5 py-3 text-sm font-semibold transition flex items-center gap-2 bg-[rgba(248,113,113,0.1)] border border-[rgba(248,113,113,0.2)] text-[#F87171] hover:bg-[rgba(248,113,113,0.15)]"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                  <span>Turn Off</span>
+                </button>
+              )}
+            </div>
           </div>
         </GlowCard>
 
@@ -1397,9 +1392,9 @@ function ProfileView({
             <div className="mt-3">
               <h2 className="text-2xl font-semibold tracking-[-0.04em] text-white">Broadcast Alert</h2>
               <p className="mt-2 text-sm text-[#A1A1AA]">Push a custom notification to all users.</p>
-              <form 
-                action="/api/admin/broadcast" 
-                method="POST" 
+              <form
+                action="/api/admin/broadcast"
+                method="POST"
                 className="mt-6 flex flex-col gap-3"
                 onSubmit={async (e) => {
                   e.preventDefault();
@@ -1410,12 +1405,12 @@ function ProfileView({
                   const url = formData.get("url") as string;
                   if (!title || !body) return;
                   const secret = "streaksecrethamsa2026";
-                  
+
                   const btn = form.querySelector('[type="submit"]') as HTMLButtonElement;
                   const originalText = btn.textContent;
                   btn.disabled = true;
                   btn.textContent = "Sending...";
-                  
+
                   try {
                     const res = await fetch("/api/admin/broadcast", {
                       method: "POST",
@@ -1430,7 +1425,7 @@ function ProfileView({
                       const text = await res.text();
                       alert("Failed to send: " + text);
                     }
-                  } catch(err) {
+                  } catch (err) {
                     alert("Error sending broadcast: " + err);
                   } finally {
                     btn.disabled = false;
@@ -1449,7 +1444,7 @@ function ProfileView({
                     <option value="/#Profile">Personal Profile</option>
                   </select>
                   <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#71717A]">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
                   </div>
                 </div>
                 <button type="submit" className="mt-2 rounded-full bg-[rgba(57,255,20,0.1)] px-6 py-3 text-sm font-semibold text-[#4ADE80] transition hover:bg-[rgba(57,255,20,0.15)]">
@@ -1475,9 +1470,8 @@ function ProfileView({
                   <button
                     type="button"
                     onClick={() => setSelectedDay((current) => current === entry.date ? null : entry.date)}
-                    className={`flex w-full items-center justify-between rounded-[22px] px-4 py-4 text-left transition hover:bg-[#1b1b1f] ${
-                      selectedDay === entry.date ? "bg-[#1b1b1f]" : "bg-[#17171A]"
-                    }`}
+                    className={`flex w-full items-center justify-between rounded-[22px] px-4 py-4 text-left transition hover:bg-[#1b1b1f] ${selectedDay === entry.date ? "bg-[#1b1b1f]" : "bg-[#17171A]"
+                      }`}
                   >
                     <div>
                       <p className="font-semibold tracking-[-0.02em] text-white">{toShortDate(entry.date)}</p>
@@ -1488,7 +1482,7 @@ function ProfileView({
                         </span>
                       ) : isLOP ? (
                         <span className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-[rgba(248,113,113,0.12)] px-2.5 py-0.5 text-xs font-medium text-[#F87171]">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
                           LOP
                         </span>
                       ) : (
@@ -1531,12 +1525,12 @@ function ProfileView({
                         {isOnLeave
                           ? "Leave day. Closes clean automatically."
                           : entry.swipes.length <= 1
-                          ? "Thin day. This one probably needs attention."
-                          : worked >= DAILY_TARGET_MINUTES
-                          ? "Clean day. You cleared the line."
-                          : worked >= HALF_DAY_MINUTES
-                          ? "Half-day safe, but not a full clear."
-                          : "Below the half-day floor — this counts as LOP."}
+                            ? "Thin day. This one probably needs attention."
+                            : worked >= DAILY_TARGET_MINUTES
+                              ? "Clean day. You cleared the line."
+                              : worked >= HALF_DAY_MINUTES
+                                ? "Half-day safe, but not a full clear."
+                                : "Below the half-day floor — this counts as LOP."}
                       </p>
                     </div>
                   ) : null}
@@ -1579,19 +1573,17 @@ function BottomNav({
                 key={tab.id}
                 type="button"
                 onClick={() => onSelect(tab.id)}
-                className={`relative flex items-center rounded-[22px] py-3.5 text-sm font-medium transition-all duration-350 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
-                  active
-                    ? "bg-gradient-to-r from-[#4ADE80] to-[#22C55E] px-5 text-[#08110B] shadow-[0_0_22px_rgba(74,222,128,0.3)]"
-                    : "px-3.5 text-[#71717A] hover:text-[#A1A1AA]"
-                }`}
+                className={`relative flex items-center rounded-[22px] py-3.5 text-sm font-medium transition-all duration-350 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${active
+                  ? "bg-gradient-to-r from-[#4ADE80] to-[#22C55E] px-5 text-[#08110B] shadow-[0_0_22px_rgba(74,222,128,0.3)]"
+                  : "px-3.5 text-[#71717A] hover:text-[#A1A1AA]"
+                  }`}
               >
                 <svg viewBox="0 0 24 24" className={`shrink-0 transition-all duration-350 ${active ? "size-[19px]" : "size-[18px]"}`}>
                   {tab.icon}
                 </svg>
                 <span
-                  className={`overflow-hidden whitespace-nowrap transition-all duration-350 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
-                    active ? "ml-2 max-w-[80px] opacity-100" : "max-w-0 opacity-0"
-                  }`}
+                  className={`overflow-hidden whitespace-nowrap transition-all duration-350 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${active ? "ml-2 max-w-[80px] opacity-100" : "max-w-0 opacity-0"
+                    }`}
                 >
                   {tab.label}
                 </span>

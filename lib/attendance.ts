@@ -242,8 +242,8 @@ export function calculateStreakData(entries: AttendanceDay[], todayDateKey = toL
 
   const message = todayIsWeekend
     ? currentStreak > 0
-      ? `Weekend. Streak is safe at ${currentStreak} days.`
-      : "It’s the weekend. No work required."
+      ? "You're safe. Streak continues."
+      : "It's the weekend. No work required."
     : !todayEntry.swipes.length
     ? currentStreak > 0
       ? "Clock in to protect the streak."
