@@ -63,7 +63,15 @@
       "Bash(PATH=/opt/homebrew/bin:$PATH pip3 install pillow-simd)",
       "Bash(python3 -c \":*)",
       "Bash(PATH=\"/opt/homebrew/bin:$PATH\" python3 -c \":*)",
-      "Bash(sips -g pixelWidth -g pixelHeight -g fileSize /Users/srikanthamsa/dev/logout/public/streak-app-icon.png)"
+      "Bash(sips -g pixelWidth -g pixelHeight -g fileSize /Users/srikanthamsa/dev/logout/public/streak-app-icon.png)",
+      "Bash(PATH=\"/opt/homebrew/bin:$PATH\" which pngquant oxipng)",
+      "Bash(brew list:*)",
+      "Bash(/opt/homebrew/bin/brew install:*)",
+      "Bash(PATH=\"/opt/homebrew/bin:$PATH\" pngquant --quality=85-95 --speed 1 --force --output /Users/srikanthamsa/dev/logout/public/streak-app-icon.png /Users/srikanthamsa/dev/logout/public/streak-app-icon.png)",
+      "Bash(PATH=\"/opt/homebrew/bin:/opt/homebrew/Cellar/node/23.11.0/bin:$PATH\" npx next build)",
+      "Bash(PATH=\"/opt/homebrew/bin:/opt/homebrew/Cellar/node/23.11.0/bin:$PATH\" node -e \"const p=require\\(''''./package.json''''\\); console.log\\(JSON.stringify\\({...p.dependencies,...p.devDependencies}, null, 2\\)\\)\")",
+      "Bash(PATH=\"/opt/homebrew/bin:/opt/homebrew/Cellar/node/23.11.0/bin:$PATH\" npm install framer-motion)",
+      "Bash(/usr/local/bin/node node_modules/.bin/tsc --noEmit)"
     ]
   }
 }
