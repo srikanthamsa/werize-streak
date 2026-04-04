@@ -1721,6 +1721,7 @@ function BottomNav({
         >
           {/* Single global indicator — absolutely positioned, draggable via nav pointer events. */}
           <motion.div
+            className="magic-nav-indicator"
             style={{
               x: indicatorX,
               width: indicatorW,
@@ -1729,8 +1730,6 @@ function BottomNav({
               bottom: 8,
               left: 0,
               borderRadius: 22,
-              background: "linear-gradient(135deg, #52FF2A 0%, #39FF14 50%, #28CC0F 100%)",
-              boxShadow: "0 0 22px rgba(57,255,20,0.5), inset 0 1px 0 rgba(255,255,255,0.18)",
               cursor: isDragging ? "grabbing" : "grab",
               zIndex: 0,
             }}

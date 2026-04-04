@@ -327,6 +327,36 @@ a {
     0 0 0 1px rgba(255, 255, 255, 0.035);
 }
 
+/* ── Bottom-nav indicator: flowing gradient + pulsing glow ─────────────── */
+@keyframes nav-indicator-flow {
+  0%   {
+    background-position: 0% 50%;
+    box-shadow: 0 0 16px rgba(57, 255, 20, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  }
+  50%  {
+    background-position: 100% 50%;
+    box-shadow: 0 0 34px rgba(57, 255, 20, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  }
+  100% {
+    background-position: 0% 50%;
+    box-shadow: 0 0 16px rgba(57, 255, 20, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  }
+}
+
+.magic-nav-indicator {
+  background: linear-gradient(
+    135deg,
+    #28CC0F 0%,
+    #52FF2A 22%,
+    #CCFF44 45%,
+    #39FF14 68%,
+    #28CC0F 85%,
+    #52FF2A 100%
+  );
+  background-size: 280% 280%;
+  animation: nav-indicator-flow 3s ease infinite;
+}
+
 .magic-bottom-nav {
   background: rgba(17, 17, 19, 0.82);
   backdrop-filter: blur(26px);
