@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
+import { motion, AnimatePresence, LayoutGroup, useMotionValue, animate } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
@@ -1560,47 +1560,128 @@ function BottomNav({
   currentTab: TabId;
   onSelect: (tab: TabId) => void;
 }) {
-  const navRef  = useRef<HTMLDivElement>(null);
-  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const SPRING       = { type: "spring" as const, stiffness: 280, damping: 26 };
+  const COMPACT_W    = 46;  // icon(18) + px-3.5(14px × 2)
+  const EXPANDED_PAD = 40;  // px-5(20px) × 2 — the indicator's horizontal padding when expanded
+  const ICON_W       = 18;
+  const LABEL_GAP    = 8;
+
+  const navRef         = useRef<HTMLDivElement>(null);
+  const tabRefs        = useRef<(HTMLButtonElement | null)[]>([]);
+  const probeRefs      = useRef<(HTMLSpanElement | null)[]>([]);
+  const expandedWidths = useRef<number[]>(tabs.map(() => 100));
+  const dragState      = useRef<{ startX: number; startIndicatorX: number } | null>(null);
+  const didDrag        = useRef(false);
+  const isDraggingRef  = useRef(false);
+
+  const indicatorX = useMotionValue(0);
+  const indicatorW = useMotionValue(COMPACT_W);
+  const [isDragging, setIsDragging] = useState(false);
 
   const activeIdx = tabs.findIndex((t) => t.id === currentTab);
-  const dragRef   = useRef<{ startX: number } | null>(null);
 
-  // Shared spring used by both the pill (layoutId) and the text — keeps them in sync
-  const SPRING = { type: "spring" as const, stiffness: 280, damping: 26 };
+  function setDragging(val: boolean) {
+    isDraggingRef.current = val;
+    setIsDragging(val);
+  }
 
-  function getTabAtX(clientX: number): number {
+  // Measure each label's rendered pixel width on mount, then set the initial indicator position.
+  useLayoutEffect(() => {
+    tabs.forEach((_, i) => {
+      const probe = probeRefs.current[i];
+      if (probe) {
+        expandedWidths.current[i] = EXPANDED_PAD + ICON_W + LABEL_GAP + probe.offsetWidth;
+      }
+    });
+    const btn = tabRefs.current[activeIdx];
+    if (btn) {
+      const w = expandedWidths.current[activeIdx]!;
+      indicatorX.set(btn.offsetLeft + btn.offsetWidth / 2 - w / 2);
+      indicatorW.set(w);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // When the active tab changes (driven by parent prop), spring the indicator to the new tab.
+  useEffect(() => {
+    if (isDraggingRef.current) return;
+    const btn = tabRefs.current[activeIdx];
+    if (!btn) return;
+    const w = expandedWidths.current[activeIdx]!;
+    const x = btn.offsetLeft + btn.offsetWidth / 2 - w / 2;
+    animate(indicatorX, x, SPRING);
+    animate(indicatorW, w, SPRING);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeIdx]);
+
+  function getTabIdxAt(clientX: number): number {
     let closest = activeIdx, minDist = Infinity;
-    tabRefs.current.forEach((b, i) => {
-      if (!b) return;
-      const r = b.getBoundingClientRect();
-      const d = Math.abs(clientX - (r.left + r.width / 2));
-      if (d < minDist) { minDist = d; closest = i; }
+    tabRefs.current.forEach((btn, i) => {
+      if (!btn) return;
+      const rect = btn.getBoundingClientRect();
+      const dist = Math.abs(clientX - (rect.left + rect.width / 2));
+      if (dist < minDist) { minDist = dist; closest = i; }
     });
     return closest;
   }
 
-  // ── Drag: highlight hovered tab, switch on release ─────────────────────────
-  function onPointerDown(e: React.PointerEvent<HTMLElement>) {
-    if (getTabAtX(e.clientX) !== activeIdx) return;
+  // Drag starts only when the user presses on the active tab area.
+  function handleNavPointerDown(e: React.PointerEvent<HTMLElement>) {
+    didDrag.current = false;
+    const tabIdx = getTabIdxAt(e.clientX);
+    if (tabIdx !== activeIdx) return;
     e.currentTarget.setPointerCapture(e.pointerId);
-    dragRef.current = { startX: e.clientX };
+    dragState.current = { startX: e.clientX, startIndicatorX: indicatorX.get() };
+    setDragging(true);
+    // Shrink the indicator to its compact icon-only size immediately.
+    animate(indicatorW, COMPACT_W, SPRING);
   }
 
-  function onPointerMove(e: React.PointerEvent<HTMLElement>) {
-    if (!dragRef.current) return;
-    const hi = getTabAtX(e.clientX);
-    tabRefs.current.forEach((b, i) => {
-      if (b) b.style.color = i === hi && i !== activeIdx ? "rgba(255,255,255,0.55)" : "";
+  function handleNavPointerMove(e: React.PointerEvent<HTMLElement>) {
+    if (!dragState.current) return;
+    const nav = navRef.current;
+    if (!nav) return;
+    const delta = e.clientX - dragState.current.startX;
+    if (Math.abs(delta) > 4) didDrag.current = true;
+    const rawX = dragState.current.startIndicatorX + delta;
+    const maxX = nav.offsetWidth - indicatorW.get();
+    indicatorX.set(Math.max(0, Math.min(rawX, maxX)));
+  }
+
+  function handleNavPointerUp(e: React.PointerEvent<HTMLElement>) {
+    if (!dragState.current) return;
+    dragState.current = null;
+    setDragging(false);
+
+    if (!didDrag.current) {
+      // Tap on active tab — spring the indicator back to its expanded position.
+      const btn = tabRefs.current[activeIdx];
+      if (btn) {
+        const w = expandedWidths.current[activeIdx]!;
+        animate(indicatorX, btn.offsetLeft + btn.offsetWidth / 2 - w / 2, SPRING);
+        animate(indicatorW, w, SPRING);
+      }
+      return;
+    }
+
+    // Determine the nearest tab by comparing the indicator's center to each tab's center.
+    const center = indicatorX.get() + COMPACT_W / 2;
+    let closest = activeIdx, minDist = Infinity;
+    tabRefs.current.forEach((btn, i) => {
+      if (!btn) return;
+      const tabCenter = btn.offsetLeft + btn.offsetWidth / 2;
+      const dist = Math.abs(center - tabCenter);
+      if (dist < minDist) { minDist = dist; closest = i; }
     });
-  }
 
-  function onPointerUp(e: React.PointerEvent<HTMLElement>) {
-    if (!dragRef.current) return;
-    dragRef.current = null;
-    tabRefs.current.forEach((b) => { if (b) b.style.color = ""; });
-    const ti = getTabAtX(e.clientX);
-    if (ti !== activeIdx) onSelect(tabs[ti]!.id);
+    // Snap the indicator to the closest tab and expand it simultaneously.
+    const btn = tabRefs.current[closest];
+    if (btn) {
+      const w = expandedWidths.current[closest]!;
+      animate(indicatorX, btn.offsetLeft + btn.offsetWidth / 2 - w / 2, SPRING);
+      animate(indicatorW, w, SPRING);
+    }
+    if (tabs[closest]?.id !== currentTab) onSelect(tabs[closest]!.id);
   }
 
   return (
@@ -1609,66 +1690,77 @@ function BottomNav({
         {/* Ambient glow */}
         <div className="pointer-events-none absolute bottom-0 left-1/2 h-32 w-80 -translate-x-1/2 rounded-full bg-[rgba(57,255,20,0.07)] blur-[48px]" />
 
-        <LayoutGroup>
-          <nav
-            ref={navRef}
-            className="magic-bottom-nav pointer-events-auto relative flex items-center gap-1 rounded-[28px] p-2 touch-none select-none"
-            onPointerDown={onPointerDown}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
-            onPointerCancel={onPointerUp}
-          >
-            {tabs.map((tab, i) => {
-              const active = tab.id === currentTab;
-              return (
-                <motion.button
-                  layout
-                  key={tab.id}
-                  ref={(el) => { tabRefs.current[i] = el as HTMLButtonElement | null; }}
-                  type="button"
-                  onClick={() => onSelect(tab.id)}
-                  transition={SPRING}
-                  className={`relative flex items-center justify-center gap-0 rounded-[22px] py-3.5 text-sm font-semibold ${
-                    active ? "px-5 text-[#07120A]" : "px-3.5 text-[#71717A] hover:text-[#A1A1AA]"
-                  }`}
-                >
-                  {/* Green pill lives inside the active button — layoutId morphs it between tabs */}
-                  {active && (
-                    <motion.div
-                      layoutId="active-indicator"
-                      className="absolute inset-0 rounded-[22px]"
+        {/* Hidden spans used to measure each label's rendered width for the expanded indicator. */}
+        <div className="pointer-events-none invisible absolute" aria-hidden="true">
+          {tabs.map((tab, i) => (
+            <span
+              key={tab.id}
+              ref={(el) => { probeRefs.current[i] = el; }}
+              className="whitespace-nowrap text-sm font-semibold"
+            >
+              {tab.label}
+            </span>
+          ))}
+        </div>
+
+        <nav
+          ref={navRef}
+          className="magic-bottom-nav pointer-events-auto relative flex items-center gap-1 rounded-[28px] p-2 touch-none select-none"
+          onPointerDown={handleNavPointerDown}
+          onPointerMove={handleNavPointerMove}
+          onPointerUp={handleNavPointerUp}
+          onPointerCancel={handleNavPointerUp}
+        >
+          {/* Single global indicator — absolutely positioned, draggable via nav pointer events. */}
+          <motion.div
+            style={{
+              x: indicatorX,
+              width: indicatorW,
+              position: "absolute",
+              top: 8,
+              bottom: 8,
+              left: 0,
+              borderRadius: 22,
+              background: "linear-gradient(135deg, #52FF2A 0%, #39FF14 50%, #28CC0F 100%)",
+              boxShadow: "0 0 22px rgba(57,255,20,0.5), inset 0 1px 0 rgba(255,255,255,0.18)",
+              cursor: isDragging ? "grabbing" : "grab",
+              zIndex: 0,
+            }}
+          />
+
+          {tabs.map((tab, i) => {
+            const active = i === activeIdx;
+            return (
+              <button
+                key={tab.id}
+                ref={(el) => { tabRefs.current[i] = el as HTMLButtonElement | null; }}
+                type="button"
+                onClick={() => { if (!isDraggingRef.current && !didDrag.current) onSelect(tab.id); }}
+                className="relative z-10 flex items-center justify-center rounded-[22px] py-3.5 px-3.5 text-sm font-semibold"
+                style={{ color: active && !isDragging ? "#07120A" : "#71717A" }}
+              >
+                <svg viewBox="0 0 24 24" className="size-[18px] shrink-0">
+                  {tab.icon}
+                </svg>
+
+                <AnimatePresence initial={false}>
+                  {active && !isDragging && (
+                    <motion.span
+                      key={tab.id + "-label"}
+                      initial={{ maxWidth: 0, opacity: 0, marginLeft: 0 }}
+                      animate={{ maxWidth: 96, opacity: 1, marginLeft: 8 }}
+                      exit={{ maxWidth: 0, opacity: 0, marginLeft: 0 }}
                       transition={SPRING}
-                      style={{
-                        background: "linear-gradient(135deg, #52FF2A 0%, #39FF14 50%, #28CC0F 100%)",
-                        boxShadow:  "0 0 22px rgba(57,255,20,0.5), inset 0 1px 0 rgba(255,255,255,0.18)",
-                      }}
-                    />
+                      className="overflow-hidden whitespace-nowrap"
+                    >
+                      {tab.label}
+                    </motion.span>
                   )}
-
-                  <svg viewBox="0 0 24 24" className="relative z-10 size-[18px] shrink-0">
-                    {tab.icon}
-                  </svg>
-
-                  {/* Text animates in/out with the same spring as the pill */}
-                  <AnimatePresence initial={false}>
-                    {active && (
-                      <motion.span
-                        key={tab.id + "-label"}
-                        initial={{ maxWidth: 0, opacity: 0, marginLeft: 0 }}
-                        animate={{ maxWidth: 96, opacity: 1, marginLeft: 8 }}
-                        exit={{ maxWidth: 0, opacity: 0, marginLeft: 0 }}
-                        transition={SPRING}
-                        className="relative z-10 overflow-hidden whitespace-nowrap"
-                      >
-                        {tab.label}
-                      </motion.span>
-                    )}
-                  </AnimatePresence>
-                </motion.button>
-              );
-            })}
-          </nav>
-        </LayoutGroup>
+                </AnimatePresence>
+              </button>
+            );
+          })}
+        </nav>
       </div>
     </div>
   );
