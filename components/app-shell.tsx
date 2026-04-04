@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { motion, useMotionValue, animate } from "framer-motion";
+import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
@@ -1560,160 +1560,14 @@ function BottomNav({
   currentTab: TabId;
   onSelect: (tab: TabId) => void;
 }) {
-  const navRef    = useRef<HTMLDivElement>(null);
-  const tabRefs   = useRef<(HTMLButtonElement | null)[]>([]);
-  const labelRefs = useRef<(HTMLSpanElement | null)[]>([]);
-  const pillRef   = useRef<HTMLDivElement>(null);
+  const navRef  = useRef<HTMLDivElement>(null);
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
-  const pillLeft  = useMotionValue(0);
-  const pillWidth = useMotionValue(0);
+  const activeIdx = tabs.findIndex((t) => t.id === currentTab);
+  const dragRef   = useRef<{ startX: number } | null>(null);
 
-  const activeIdx    = tabs.findIndex((t) => t.id === currentTab);
-  const prevIdx      = useRef(-1);
-  const inited       = useRef(false);
-  const transitionId = useRef(0);
-
-  const [isMoving, setIsMoving] = useState(false);
-
-  const dragRef = useRef<{
-    startX: number; startLeft: number; startWidth: number;
-  } | null>(null);
-
-  // ── Compute FINAL pill geometry without reading transitioning DOM ──────────
-  // Uses label.scrollWidth (always intrinsic text width, even when max-width:0)
-  // and hardcoded Tailwind constants so the pill always targets the correct
-  // final size — no correction timeout needed.
-  function getTarget(newActiveIdx: number) {
-    // Tailwind values (1rem = 16px base):
-    //   nav p-2 → 8px   gap-1 → 4px
-    //   active   px-5 → 20px/side   ml-2 → 8px
-    //   inactive px-3.5 → 14px/side   icon size-[18px] → 18px
-    const NAV_PAD   = 8;
-    const GAP       = 4;
-    const ICON      = 18;
-    const ACT_PX    = 20;
-    const INACT_PX  = 14;
-    const LABEL_GAP = 8;
-
-    const widths = tabs.map((_, i) => {
-      const lw = labelRefs.current[i]?.scrollWidth ?? 0;
-      return i === newActiveIdx
-        ? ACT_PX * 2 + ICON + LABEL_GAP + lw
-        : INACT_PX * 2 + ICON;
-    });
-
-    let x = NAV_PAD;
-    for (let i = 0; i < newActiveIdx; i++) x += widths[i]! + GAP;
-
-    return { left: x, width: widths[newActiveIdx]! };
-  }
-
-  // ── Chromatic box-shadow driven by pill velocity (zero React re-renders) ──
-  useEffect(() => {
-    const BASE = "0 0 22px rgba(57,255,20,0.5), inset 0 1px 0 rgba(255,255,255,0.18)";
-    return pillLeft.on("change", () => {
-      const el = pillRef.current;
-      if (!el) return;
-      const intensity = Math.min(Math.abs(pillLeft.getVelocity()) / 700, 1);
-      if (intensity < 0.04) {
-        el.style.boxShadow = BASE;
-      } else {
-        const s = (intensity * 4).toFixed(1);
-        el.style.boxShadow =
-          `${BASE}, -${s}px 0 8px rgba(255,0,0,0.5), ${s}px 0 8px rgba(0,0,255,0.5)`;
-      }
-    });
-  }, [pillLeft]);
-
-  // Compact pill width (icon only, no label) used during transit
-  const COMPACT_WIDTH = 46; // INACT_PX*2 + ICON = 14*2+18
-
-  // ── Shrink → slide → expand animation ────────────────────────────────────
-  useLayoutEffect(() => {
-    const t = getTarget(activeIdx);
-
-    if (!inited.current) {
-      inited.current  = true;
-      prevIdx.current = activeIdx;
-      pillLeft.set(t.left);
-      pillWidth.set(t.width);
-      return;
-    }
-
-    prevIdx.current = activeIdx;
-    const tid = ++transitionId.current;
-    setIsMoving(true);
-
-    // Shrink pill to compact size immediately
-    animate(pillWidth, COMPACT_WIDTH, { type: "spring", stiffness: 500, damping: 32 });
-
-    // Slide to target position, then expand and reveal text
-    animate(pillLeft, t.left, {
-      type: "spring", stiffness: 280, damping: 26,
-      onComplete: () => {
-        if (transitionId.current !== tid) return;
-        animate(pillWidth, t.width, {
-          type: "spring", stiffness: 280, damping: 22,
-          onComplete: () => {
-            if (transitionId.current !== tid) return;
-            setIsMoving(false);
-          },
-        });
-      },
-    });
-  }, [activeIdx]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ── Drag ──────────────────────────────────────────────────────────────────
-  function onPointerDown(e: React.PointerEvent<HTMLElement>) {
-    const nav = navRef.current;
-    if (!nav) return;
-    const nr = nav.getBoundingClientRect();
-    const pL = pillLeft.get() + nr.left;
-    const pR = pL + pillWidth.get();
-    if (e.clientX < pL - 12 || e.clientX > pR + 12) return;
-    e.currentTarget.setPointerCapture(e.pointerId);
-    dragRef.current = { startX: e.clientX, startLeft: pillLeft.get(), startWidth: pillWidth.get() };
-    ++transitionId.current; // invalidate any in-flight expand onComplete
-    setIsMoving(true);
-    animate(pillWidth, COMPACT_WIDTH, { type: "spring", stiffness: 500, damping: 32 });
-  }
-
-  function onPointerMove(e: React.PointerEvent<HTMLElement>) {
-    const d   = dragRef.current;
-    const nav = navRef.current;
-    if (!d || !nav) return;
-    const dx      = e.clientX - d.startX;
-    const navW    = nav.getBoundingClientRect().width;
-    const newLeft = Math.max(8, Math.min(navW - COMPACT_WIDTH - 8, d.startLeft + dx));
-    pillLeft.set(newLeft);
-    const hi = getTabAtX(e.clientX);
-    tabRefs.current.forEach((b, i) => {
-      if (b) b.style.color = i === hi && i !== activeIdx ? "rgba(255,255,255,0.55)" : "";
-    });
-  }
-
-  function onPointerUp(e: React.PointerEvent<HTMLElement>) {
-    if (!dragRef.current) return;
-    dragRef.current = null;
-    tabRefs.current.forEach((b) => { if (b) b.style.color = ""; });
-    const ti = getTabAtX(e.clientX);
-    if (ti !== activeIdx) {
-      // Tab change — useLayoutEffect will handle the expand + setIsMoving(false)
-      onSelect(tabs[ti]!.id);
-    } else {
-      // Settled on same tab — snap back and expand
-      const t = getTarget(activeIdx);
-      const tid = ++transitionId.current;
-      animate(pillLeft, t.left, { type: "spring", stiffness: 300, damping: 26 });
-      animate(pillWidth, t.width, {
-        type: "spring", stiffness: 280, damping: 22,
-        onComplete: () => {
-          if (transitionId.current !== tid) return;
-          setIsMoving(false);
-        },
-      });
-    }
-  }
+  // Shared spring used by both the pill (layoutId) and the text — keeps them in sync
+  const SPRING = { type: "spring" as const, stiffness: 280, damping: 26 };
 
   function getTabAtX(clientX: number): number {
     let closest = activeIdx, minDist = Infinity;
@@ -1726,66 +1580,95 @@ function BottomNav({
     return closest;
   }
 
+  // ── Drag: highlight hovered tab, switch on release ─────────────────────────
+  function onPointerDown(e: React.PointerEvent<HTMLElement>) {
+    if (getTabAtX(e.clientX) !== activeIdx) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragRef.current = { startX: e.clientX };
+  }
+
+  function onPointerMove(e: React.PointerEvent<HTMLElement>) {
+    if (!dragRef.current) return;
+    const hi = getTabAtX(e.clientX);
+    tabRefs.current.forEach((b, i) => {
+      if (b) b.style.color = i === hi && i !== activeIdx ? "rgba(255,255,255,0.55)" : "";
+    });
+  }
+
+  function onPointerUp(e: React.PointerEvent<HTMLElement>) {
+    if (!dragRef.current) return;
+    dragRef.current = null;
+    tabRefs.current.forEach((b) => { if (b) b.style.color = ""; });
+    const ti = getTabAtX(e.clientX);
+    if (ti !== activeIdx) onSelect(tabs[ti]!.id);
+  }
+
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50">
       <div className="flex justify-center px-6 pb-[calc(env(safe-area-inset-bottom)+20px)]">
         {/* Ambient glow */}
         <div className="pointer-events-none absolute bottom-0 left-1/2 h-32 w-80 -translate-x-1/2 rounded-full bg-[rgba(57,255,20,0.07)] blur-[48px]" />
 
-        <nav
-          ref={navRef}
-          className="magic-bottom-nav pointer-events-auto relative flex items-center gap-1 rounded-[28px] p-2 touch-none select-none"
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerCancel={onPointerUp}
-        >
-          {/* Single absolute pill — no SVG filters, pure spring + box-shadow */}
-          <motion.div
-            ref={pillRef}
-            aria-hidden="true"
-            className="pointer-events-none absolute top-2 h-[calc(100%-16px)] rounded-[22px]"
-            style={{
-              left:       pillLeft,
-              width:      pillWidth,
-              background: "linear-gradient(135deg, #52FF2A 0%, #39FF14 50%, #28CC0F 100%)",
-              boxShadow:  "0 0 22px rgba(57,255,20,0.5), inset 0 1px 0 rgba(255,255,255,0.18)",
-            }}
-          />
-
-          {tabs.map((tab, i) => {
-            const active = tab.id === currentTab;
-            return (
-              <button
-                key={tab.id}
-                ref={(el) => { tabRefs.current[i] = el; }}
-                type="button"
-                onClick={() => onSelect(tab.id)}
-                className={`relative z-10 flex items-center rounded-[22px] py-3.5 text-sm font-semibold transition-colors duration-200 ${
-                  active ? "px-5 text-[#07120A]" : "px-3.5 text-[#71717A] hover:text-[#A1A1AA]"
-                }`}
-              >
-                <svg viewBox="0 0 24 24" className="size-[18px] shrink-0">
-                  {tab.icon}
-                </svg>
-                {/*
-                  Always in DOM. Width animates 0→auto via CSS.
-                  scrollWidth (used by getTarget) returns intrinsic text width
-                  even when max-width is 0, so the pill knows its final size
-                  immediately — no correction timeout needed.
-                */}
-                <span
-                  ref={(el) => { labelRefs.current[i] = el; }}
-                  className={`overflow-hidden whitespace-nowrap transition-[max-width,opacity,margin] duration-300 ease-out ${
-                    active && !isMoving ? "ml-2 max-w-[80px] opacity-100" : "ml-0 max-w-0 opacity-0"
+        <LayoutGroup>
+          <nav
+            ref={navRef}
+            className="magic-bottom-nav pointer-events-auto relative flex items-center gap-1 rounded-[28px] p-2 touch-none select-none"
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerUp}
+          >
+            {tabs.map((tab, i) => {
+              const active = tab.id === currentTab;
+              return (
+                <motion.button
+                  layout
+                  key={tab.id}
+                  ref={(el) => { tabRefs.current[i] = el as HTMLButtonElement | null; }}
+                  type="button"
+                  onClick={() => onSelect(tab.id)}
+                  transition={SPRING}
+                  className={`relative flex items-center justify-center gap-0 rounded-[22px] py-3.5 text-sm font-semibold ${
+                    active ? "px-5 text-[#07120A]" : "px-3.5 text-[#71717A] hover:text-[#A1A1AA]"
                   }`}
                 >
-                  {tab.label}
-                </span>
-              </button>
-            );
-          })}
-        </nav>
+                  {/* Green pill lives inside the active button — layoutId morphs it between tabs */}
+                  {active && (
+                    <motion.div
+                      layoutId="active-indicator"
+                      className="absolute inset-0 rounded-[22px]"
+                      transition={SPRING}
+                      style={{
+                        background: "linear-gradient(135deg, #52FF2A 0%, #39FF14 50%, #28CC0F 100%)",
+                        boxShadow:  "0 0 22px rgba(57,255,20,0.5), inset 0 1px 0 rgba(255,255,255,0.18)",
+                      }}
+                    />
+                  )}
+
+                  <svg viewBox="0 0 24 24" className="relative z-10 size-[18px] shrink-0">
+                    {tab.icon}
+                  </svg>
+
+                  {/* Text animates in/out with the same spring as the pill */}
+                  <AnimatePresence initial={false}>
+                    {active && (
+                      <motion.span
+                        key={tab.id + "-label"}
+                        initial={{ maxWidth: 0, opacity: 0, marginLeft: 0 }}
+                        animate={{ maxWidth: 96, opacity: 1, marginLeft: 8 }}
+                        exit={{ maxWidth: 0, opacity: 0, marginLeft: 0 }}
+                        transition={SPRING}
+                        className="relative z-10 overflow-hidden whitespace-nowrap"
+                      >
+                        {tab.label}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </motion.button>
+              );
+            })}
+          </nav>
+        </LayoutGroup>
       </div>
     </div>
   );
