@@ -532,7 +532,7 @@ function TodayView(data: DashboardData) {
         <div className="relative mt-3">
           <p className="text-base text-[#A1A1AA]">
             {isTodayWeekend
-              ? "It's the weekend. Enjoy!."
+              ? "It's the weekend. Enjoy!"
               : !hasStartedToday
                 ? "Go to office first. Your average starts updating after the first swipe."
                 : minutesRemaining <= 0
