@@ -1573,18 +1573,44 @@ function BottomNav({
     committed: boolean;
   } | null>(null);
 
-  // Snap the pill to the active tab (no drag override)
+  // Snap the pill to the active tab.
+  // The active button's label span transitions max-w 0→80px over 350ms, so
+  // we do two measurements: one immediately (positions the pill) and one at
+  // 370ms (corrects the width to the fully-expanded label size).
   useEffect(() => {
     const pill = pillRef.current;
     const btn = tabRefs.current[activeIdx];
     if (!pill || !btn || dragState.current?.dragging) return;
     const nav = navRef.current;
     if (!nav) return;
-    const navRect = nav.getBoundingClientRect();
-    const btnRect = btn.getBoundingClientRect();
-    pill.style.transition = "left 0.42s cubic-bezier(0.34,1.56,0.64,1), width 0.42s cubic-bezier(0.34,1.56,0.64,1)";
-    pill.style.left = `${btnRect.left - navRect.left}px`;
-    pill.style.width = `${btnRect.width}px`;
+
+    const measure = () => {
+      const navRect = nav.getBoundingClientRect();
+      const btnRect = btn.getBoundingClientRect();
+      return { left: btnRect.left - navRect.left, width: btnRect.width };
+    };
+
+    // Phase 1: spring-animate to current button position
+    const { left, width } = measure();
+    pill.style.transition = [
+      "left 0.42s cubic-bezier(0.34,1.56,0.64,1)",
+      "width 0.42s cubic-bezier(0.34,1.56,0.64,1)",
+      "transform 0.3s cubic-bezier(0.34,1.56,0.64,1)",
+    ].join(", ");
+    pill.style.transform = "scale(1)";
+    pill.style.left = `${left}px`;
+    pill.style.width = `${width}px`;
+
+    // Phase 2: after the label finishes expanding, correct the pill width
+    const tid = setTimeout(() => {
+      if (dragState.current?.dragging) return;
+      const { left: l2, width: w2 } = measure();
+      pill.style.transition = "width 0.22s cubic-bezier(0.34,1.56,0.64,1), left 0.22s cubic-bezier(0.34,1.56,0.64,1)";
+      pill.style.left = `${l2}px`;
+      pill.style.width = `${w2}px`;
+    }, 370);
+
+    return () => clearTimeout(tid);
   }, [activeIdx]);
 
   function getTabAtX(clientX: number): number {
@@ -1617,7 +1643,12 @@ function BottomNav({
       dragging: true,
       committed: false,
     };
-    pill.style.transition = "none";
+    // Zoom the pill up on grab
+    pill.style.transition = "transform 0.18s cubic-bezier(0.34,1.56,0.64,1)";
+    pill.style.transform = "scale(1.13)";
+    pill.style.transformOrigin = "center center";
+    // Remove transition after zoom-in so drag movement is instant
+    setTimeout(() => { pill.style.transition = "none"; }, 200);
   }
 
   function onPointerMove(e: React.PointerEvent<HTMLDivElement>) {
@@ -1657,16 +1688,22 @@ function BottomNav({
     tabRefs.current.forEach((b) => { if (b) b.style.color = ""; });
 
     if (targetIdx !== activeIdx) {
+      // useEffect will handle pill positioning after React re-renders
       onSelect(tabs[targetIdx]!.id);
     } else {
-      // Snap back to current tab
+      // Snap back to current tab and shrink back to normal scale
       const pill = pillRef.current;
       const btn = tabRefs.current[activeIdx];
       const nav = navRef.current;
       if (pill && btn && nav) {
         const navRect = nav.getBoundingClientRect();
         const btnRect = btn.getBoundingClientRect();
-        pill.style.transition = "left 0.38s cubic-bezier(0.34,1.56,0.64,1), width 0.38s cubic-bezier(0.34,1.56,0.64,1)";
+        pill.style.transition = [
+          "left 0.38s cubic-bezier(0.34,1.56,0.64,1)",
+          "width 0.38s cubic-bezier(0.34,1.56,0.64,1)",
+          "transform 0.3s cubic-bezier(0.34,1.56,0.64,1)",
+        ].join(", ");
+        pill.style.transform = "scale(1)";
         pill.style.left = `${btnRect.left - navRect.left}px`;
         pill.style.width = `${btnRect.width}px`;
       }
