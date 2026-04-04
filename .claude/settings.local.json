@@ -45,7 +45,16 @@
       "Bash(/Users/srikanthamsa/.nvm/versions/node/v23.10.0/bin/npx tsc:*)",
       "Bash(/opt/homebrew/Cellar/node/23.11.0/bin/node /opt/homebrew/Cellar/node/23.11.0/bin/npx tsc --noEmit)",
       "Bash(PATH=\"/opt/homebrew/bin:/opt/homebrew/Cellar/node/23.11.0/bin:$PATH\" npx tsc --noEmit)",
-      "Bash(PATH=\"/opt/homebrew/bin:/opt/homebrew/Cellar/node/23.11.0/bin:$PATH\" node -e \"const p = require\\(''./package.json''\\); console.log\\(p.dependencies?.next || p.devDependencies?.next\\)\")"
+      "Bash(PATH=\"/opt/homebrew/bin:/opt/homebrew/Cellar/node/23.11.0/bin:$PATH\" node -e \"const p = require\\(''./package.json''\\); console.log\\(p.dependencies?.next || p.devDependencies?.next\\)\")",
+      "Bash(PATH=\"/opt/homebrew/bin:$PATH\" which convert magick sips)",
+      "Bash(sips -g pixelWidth -g pixelHeight /Users/srikanthamsa/dev/logout/public/streak-app-icon.png)",
+      "Bash(python3 -c \"from PIL import Image; print\\(''PIL ok''\\)\")",
+      "Bash(python3 -c \"import PIL; print\\(''PIL ok''\\)\")",
+      "Bash(PATH=\"/opt/homebrew/bin:/opt/homebrew/Cellar/node/23.11.0/bin:$PATH\" python3 -m pip install Pillow --quiet)",
+      "Bash(PATH=\"/opt/homebrew/bin:/opt/homebrew/Cellar/node/23.11.0/bin:$PATH\" python3 -m pip install Pillow --quiet --break-system-packages)",
+      "Bash(python3 -:*)",
+      "Bash(PATH=\"/opt/homebrew/bin:$PATH\" python3 -c \"from PIL import Image; print\\(''ok''\\)\")",
+      "Bash(PATH=\"/opt/homebrew/bin:$PATH\" python3 - <<'EOF':*)"
     ]
   }
 }
