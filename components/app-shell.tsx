@@ -1602,13 +1602,22 @@ function BottomNav({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Calculate the indicator's FUTURE x position mathematically, without reading
+  // the shifting DOM. All non-active tabs settle to COMPACT_W; the target tab
+  // settles to its expanded width. The indicator width equals the expanded width,
+  // so the +w/2-w/2 centering terms cancel and x equals the tab's future left edge.
+  // nav padding: p-2 = 8px  |  flex gap: gap-1 = 4px
+  function getFutureX(targetIdx: number): number {
+    const NAV_PAD_LEFT = 8;
+    const FLEX_GAP     = 4;
+    return NAV_PAD_LEFT + targetIdx * (COMPACT_W + FLEX_GAP);
+  }
+
   // When the active tab changes (driven by parent prop), spring the indicator to the new tab.
   useEffect(() => {
     if (isDraggingRef.current) return;
-    const btn = tabRefs.current[activeIdx];
-    if (!btn) return;
     const w = expandedWidths.current[activeIdx]!;
-    const x = btn.offsetLeft + btn.offsetWidth / 2 - w / 2;
+    const x = getFutureX(activeIdx);
     animate(indicatorX, x, SPRING);
     animate(indicatorW, w, SPRING);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1675,12 +1684,11 @@ function BottomNav({
     });
 
     // Snap the indicator to the closest tab and expand it simultaneously.
-    const btn = tabRefs.current[closest];
-    if (btn) {
-      const w = expandedWidths.current[closest]!;
-      animate(indicatorX, btn.offsetLeft + btn.offsetWidth / 2 - w / 2, SPRING);
-      animate(indicatorW, w, SPRING);
-    }
+    // Use the same predictive math as getFutureX so the animation targets the
+    // settled layout position, not the pre-shift DOM position.
+    const w = expandedWidths.current[closest]!;
+    animate(indicatorX, getFutureX(closest), SPRING);
+    animate(indicatorW, w, SPRING);
     if (tabs[closest]?.id !== currentTab) onSelect(tabs[closest]!.id);
   }
 
