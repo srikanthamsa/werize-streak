@@ -195,7 +195,7 @@ export function OnboardingForm({
                 isLive ? "Update your settings." : "Turn on the magic once."
               ) : (
                 <>
-                  Sign in, and see the magic inside{" "}
+                  Who said 9 hours can&apos;t be fun? Sign in to{" "}
                   <span className="inline-block bg-gradient-to-r from-[#B9FF31] to-[#67FF39] bg-clip-text font-black italic uppercase tracking-[-0.05em] text-transparent">
                     Streak
                   </span>

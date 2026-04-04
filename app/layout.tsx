@@ -51,6 +51,49 @@ export default function RootLayout({
             `,
           }}
         />
+        <Script
+          id="pwa-splash"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                var isStandalone =
+                  window.navigator.standalone === true ||
+                  window.matchMedia("(display-mode: standalone)").matches;
+                if (isStandalone) {
+                  var el = document.createElement("div");
+                  el.id = "pwa-splash-screen";
+                  el.style.cssText = [
+                    "position:fixed","inset:0","z-index:99999",
+                    "display:flex","flex-direction:column",
+                    "align-items:center","justify-content:center","gap:28px",
+                    "background:#0B0B0C",
+                    "transition:opacity 0.35s ease",
+                  ].join(";");
+                  el.innerHTML = '<img src="/streak-logo-header-tight.png" alt="Streak" style="width:210px;height:auto;object-fit:contain;" />'
+                    + '<div style="display:flex;gap:6px;">'
+                    + '<div class="pwa-dot" style="width:6px;height:6px;border-radius:50%;background:#39FF14;animation:pwaDot 1.4s ease-in-out 0s infinite;opacity:0.35;"></div>'
+                    + '<div class="pwa-dot" style="width:6px;height:6px;border-radius:50%;background:#39FF14;animation:pwaDot 1.4s ease-in-out 0.18s infinite;opacity:0.35;"></div>'
+                    + '<div class="pwa-dot" style="width:6px;height:6px;border-radius:50%;background:#39FF14;animation:pwaDot 1.4s ease-in-out 0.36s infinite;opacity:0.35;"></div>'
+                    + '</div>';
+                  var style = document.createElement("style");
+                  style.textContent = "@keyframes pwaDot{0%,80%,100%{opacity:0.25;transform:scale(0.85)}40%{opacity:1;transform:scale(1)}}";
+                  document.head.appendChild(style);
+                  document.body.appendChild(el);
+                  function removeSplash() {
+                    el.style.opacity = "0";
+                    setTimeout(function() { el.remove(); }, 380);
+                  }
+                  if (document.readyState === "complete") {
+                    setTimeout(removeSplash, 400);
+                  } else {
+                    window.addEventListener("load", function() { setTimeout(removeSplash, 400); }, { once: true });
+                  }
+                }
+              } catch(e) {}
+            `,
+          }}
+        />
       </head>
       <body className={inter.variable} suppressHydrationWarning>
         {children}

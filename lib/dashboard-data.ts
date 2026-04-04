@@ -6,6 +6,7 @@ import {
   getLeaderboardCards,
   getProgressPercent,
   isWeekend,
+  HALF_DAY_MINUTES,
 } from "@/lib/attendance";
 import type { AttendanceDay, LeaderboardEntry, MonthSummary, StreakData, UserProfile } from "@/lib/types";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
@@ -71,8 +72,14 @@ function getStatusForDay(entry: Omit<AttendanceDay, "status">): AttendanceDay["s
   }
 
   const isSameDay = entry.date === toLocalDateKey();
+  if (isSameDay) return "in_progress";
 
-  return isSameDay ? "in_progress" : "done";
+  // Past days below half-day threshold are LOP regardless of monthly average
+  if (calculateWorkedMinutes(entry.swipes) < HALF_DAY_MINUTES) {
+    return "lop";
+  }
+
+  return "done";
 }
 
 function normalizeAttendanceRows(rows: AttendanceRow[]) {
@@ -276,11 +283,15 @@ export async function getDashboardData(): Promise<DashboardData> {
   const istNow = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
   const startOfMonth = `${istNow.getUTCFullYear()}-${String(istNow.getUTCMonth() + 1).padStart(2, "0")}-01`;
 
+  // Fetch 90 days back so streaks carry across month boundaries
+  const ist90DaysAgo = new Date(istNow.getTime() - 90 * 24 * 60 * 60 * 1000);
+  const streakStartDate = `${ist90DaysAgo.getUTCFullYear()}-${String(ist90DaysAgo.getUTCMonth() + 1).padStart(2, "0")}-${String(ist90DaysAgo.getUTCDate()).padStart(2, "0")}`;
+
   const { data: attendanceRows, error: attendanceError } = await supabase
     .from("attendance_logs")
     .select("attendance_date, swipe_times, sync_source")
     .eq("user_id", profileRow.id)
-    .gte("attendance_date", startOfMonth)
+    .gte("attendance_date", streakStartDate)
     .order("attendance_date", { ascending: false });
 
   if (attendanceError) {
@@ -328,8 +339,13 @@ export async function getDashboardData(): Promise<DashboardData> {
     );
   }
 
-  const normalizedEntries = normalizeAttendanceRows((attendanceRows ?? []) as AttendanceRow[]);
+  // All entries going back 90 days — used for streak (carries across month boundaries)
+  const allNormalizedEntries = normalizeAttendanceRows((attendanceRows ?? []) as AttendanceRow[]);
   const currentDateKey = toLocalDateKey();
+
+  // Current-month slice only — used for month summary and day display
+  const normalizedEntries = allNormalizedEntries.filter((entry) => entry.date >= startOfMonth);
+
   const todayEntryLive = normalizedEntries.find((entry) => entry.date === currentDateKey) ?? {
     date: currentDateKey,
     swipes: [],
@@ -349,9 +365,9 @@ export async function getDashboardData(): Promise<DashboardData> {
 
   const workingDays = getWorkingDaysInMonth();
   const summary = calculateMonthSummary(normalizedEntries, workingDays);
-  const streak = calculateStreakData(normalizedEntries, currentDateKey);
+  const streak = calculateStreakData(allNormalizedEntries, currentDateKey);
 
-  if (!normalizedEntries.length) {
+  if (!allNormalizedEntries.length) {
     return createEmptyDashboardData({
       isLive: true,
       profile: derivedProfile,

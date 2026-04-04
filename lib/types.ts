@@ -1,4 +1,4 @@
-export type AttendanceDayStatus = "in_progress" | "done" | "missing_swipe" | "leave";
+export type AttendanceDayStatus = "in_progress" | "done" | "missing_swipe" | "leave" | "lop";
 export type StreakStatus = "safe" | "risk" | "broken";
 export type RealTimeRiskStatus = "safe" | "risk" | "danger";
 

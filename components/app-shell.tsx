@@ -13,6 +13,7 @@ import {
   formatMinutes,
   HALF_DAY_MINUTES,
   getMinutesRemaining,
+  isWeekend,
   toClockLabel,
   toShortDate,
   formatRelativeTime,
@@ -461,6 +462,7 @@ function TodayView(data: DashboardData) {
     : "bg-[linear-gradient(90deg,#FCA5A5,#F87171,#EF4444)] shadow-[0_0_30px_rgba(248,113,113,0.24)]";
   const hasStartedToday = data.todayEntry.swipes.length > 0;
   const isOnLeaveToday = data.todayEntry.syncSource === "manual_leave";
+  const isTodayWeekend = isWeekend(data.todayEntry.date);
   const minimumViable = data.profile.firstSwipeAt
     ? new Date(new Date(data.profile.firstSwipeAt).getTime() + 4.5 * 60 * 60 * 1000).toISOString()
     : null;
@@ -530,7 +532,9 @@ function TodayView(data: DashboardData) {
         </div>
         <div className="relative mt-3">
           <p className="text-base text-[#A1A1AA]">
-            {!hasStartedToday
+            {isTodayWeekend
+              ? "It's the weekend. No targets today — your average is locked in."
+              : !hasStartedToday
               ? "Go to office first. Your average starts updating after the first swipe."
               : minutesRemaining <= 0
               ? "You have already cleared the day."
@@ -538,9 +542,9 @@ function TodayView(data: DashboardData) {
           </p>
         </div>
 
-        <div className={`mt-6 inline-flex items-center gap-3 rounded-full px-4 py-3 text-sm ${hasStartedToday ? status.tone : "bg-[#17171A] text-[#A1A1AA]"}`}>
-          <span className={`h-2.5 w-2.5 rounded-full ${hasStartedToday ? (status.label === "Behind" ? "bg-[#F87171] shadow-[0_0_18px_#F87171]" : "bg-[#4ADE80] shadow-[0_0_18px_#4ADE80]") : "bg-gradient-to-tr from-[#F59E0B] to-[#FDE047] shadow-[0_0_12px_rgba(253,224,71,0.5)]"}`} />
-          <span>{hasStartedToday ? statusCopy : "Day not started yet."}</span>
+        <div className={`mt-6 inline-flex items-center gap-3 rounded-full px-4 py-3 text-sm ${isTodayWeekend ? "bg-[#17171A] text-[#A1A1AA]" : hasStartedToday ? status.tone : "bg-[#17171A] text-[#A1A1AA]"}`}>
+          <span className={`h-2.5 w-2.5 rounded-full ${isTodayWeekend ? "bg-[#71717A]" : hasStartedToday ? (status.label === "Behind" ? "bg-[#F87171] shadow-[0_0_18px_#F87171]" : "bg-[#4ADE80] shadow-[0_0_18px_#4ADE80]") : "bg-gradient-to-tr from-[#F59E0B] to-[#FDE047] shadow-[0_0_12px_rgba(253,224,71,0.5)]"}`} />
+          <span>{isTodayWeekend ? "Weekend — no work required." : hasStartedToday ? statusCopy : "Day not started yet."}</span>
         </div>
 
         <div className="mt-8">
@@ -613,7 +617,7 @@ function TodayView(data: DashboardData) {
             <div>
               <p className="magic-tech-label text-xs text-[#A1A1AA]">DAY STATUS</p>
               <h2 className="text-xl font-semibold tracking-[-0.03em] text-white">
-                {isOnLeaveToday ? "You're on Leave" : "When can I leave?"}
+                {isOnLeaveToday ? "You're on Leave" : isTodayWeekend ? "It's the Weekend" : "When can I leave?"}
               </h2>
             </div>
             <div className="flex items-center gap-2">
@@ -640,7 +644,16 @@ function TodayView(data: DashboardData) {
                   Leave
                 </h1>
                 <p className="mt-4 text-sm text-[#A1A1AA]">
-                  You're officially off the clock today. Check back tomorrow.
+                  You’re officially off the clock today. Check back tomorrow.
+                </p>
+              </div>
+            ) : isTodayWeekend ? (
+              <div className="flex flex-col items-center justify-center gap-2">
+                <h1 className="text-[58px] font-semibold leading-none tracking-[-0.02em] text-white sm:text-[78px]">
+                  Weekend
+                </h1>
+                <p className="mt-4 text-sm text-[#A1A1AA]">
+                  No office today. Enjoy your break.
                 </p>
               </div>
             ) : (
@@ -664,7 +677,7 @@ function TodayView(data: DashboardData) {
             )}
           </div>
 
-          {isOnLeaveToday ? null : hasStartedToday ? (
+          {isOnLeaveToday || isTodayWeekend ? null : hasStartedToday ? (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <MiniCard title="Avoid LOP" value={minimumViable ? toClockLabel(minimumViable) : "--"} />
               <MiniCard title="Comfort zone" value={comfortable ? toClockLabel(comfortable) : "--"} />
@@ -1454,6 +1467,7 @@ function ProfileView({
           <div className="mt-6 max-h-[500px] space-y-3 overflow-y-auto pr-2 scrollbar-hide">
             {monthEntries.map((entry) => {
               const isOnLeave = entry.syncSource === "manual_leave";
+              const isLOP = entry.status === "lop";
               const worked = calculateWorkedMinutes(entry.swipes);
 
               return (
@@ -1472,12 +1486,17 @@ function ProfileView({
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                           On Leave
                         </span>
+                      ) : isLOP ? (
+                        <span className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-[rgba(248,113,113,0.12)] px-2.5 py-0.5 text-xs font-medium text-[#F87171]">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                          LOP
+                        </span>
                       ) : (
                         <p className="mt-1 text-sm text-[#A1A1AA]">{entry.swipes.length} swipes captured</p>
                       )}
                     </div>
                     <div className="flex items-center gap-3">
-                      <p className="text-sm font-semibold text-white">
+                      <p className={`text-sm font-semibold ${isLOP ? "text-[#F87171]" : "text-white"}`}>
                         {isOnLeave ? "Full Clear" : formatMinutes(worked)}
                       </p>
                       <svg viewBox="0 0 24 24" className={`size-4 text-[#71717A] transition-transform duration-200 ${selectedDay === entry.date ? "rotate-180" : ""}`}>
@@ -1509,7 +1528,7 @@ function ProfileView({
                         </div>
                       </div>
                       <p className="mt-4 text-sm text-[#A1A1AA]">
-                        {isOnLeave 
+                        {isOnLeave
                           ? "Leave day. Closes clean automatically."
                           : entry.swipes.length <= 1
                           ? "Thin day. This one probably needs attention."
@@ -1517,7 +1536,7 @@ function ProfileView({
                           ? "Clean day. You cleared the line."
                           : worked >= HALF_DAY_MINUTES
                           ? "Half-day safe, but not a full clear."
-                          : "Below half-day floor. This one was expensive."}
+                          : "Below the half-day floor — this counts as LOP."}
                       </p>
                     </div>
                   ) : null}
