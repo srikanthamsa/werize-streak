@@ -36,6 +36,31 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* apple-touch-startup-image: native iOS splash shown BEFORE the WebView starts.
+            Covers all common iPhone sizes (portrait). Physical px = CSS px × DPR. */}
+        {/* iPhone SE 2nd/3rd gen — 375×667 @2x */}
+        <link rel="apple-touch-startup-image" href="/splash?w=750&h=1334"
+          media="screen and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+        {/* iPhone 13 mini / 12 mini — 375×812 @3x */}
+        <link rel="apple-touch-startup-image" href="/splash?w=1125&h=2436"
+          media="screen and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+        {/* iPhone 12 / 13 / 14 — 390×844 @3x */}
+        <link rel="apple-touch-startup-image" href="/splash?w=1170&h=2532"
+          media="screen and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+        {/* iPhone 14 Pro / 15 / 15 Pro — 393×852 @3x */}
+        <link rel="apple-touch-startup-image" href="/splash?w=1179&h=2556"
+          media="screen and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+        {/* iPhone 14 Plus — 428×926 @3x */}
+        <link rel="apple-touch-startup-image" href="/splash?w=1284&h=2778"
+          media="screen and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+        {/* iPhone 14 Pro Max / 15 Plus / 15 Pro Max — 430×932 @3x */}
+        <link rel="apple-touch-startup-image" href="/splash?w=1290&h=2796"
+          media="screen and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+        {/* iPhone 16 / 16 Pro — 393×852 @3x (same as 14 Pro, covered above) */}
+        {/* iPhone 16 Plus — 430×932 @3x (same as 15 Pro Max, covered above) */}
+        {/* iPhone 16 Pro Max — 440×956 @3x */}
+        <link rel="apple-touch-startup-image" href="/splash?w=1320&h=2868"
+          media="screen and (device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
         <Script
           id="theme-init"
           strategy="beforeInteractive"
@@ -68,26 +93,31 @@ export default function RootLayout({
                     "display:flex","flex-direction:column",
                     "align-items:center","justify-content:center","gap:28px",
                     "background:#0B0B0C",
-                    "transition:opacity 0.35s ease",
+                    "transition:opacity 0.4s ease",
                   ].join(";");
                   el.innerHTML = '<img src="/streak-logo-header-tight.png" alt="Streak" style="width:210px;height:auto;object-fit:contain;" />'
                     + '<div style="display:flex;gap:6px;">'
-                    + '<div class="pwa-dot" style="width:6px;height:6px;border-radius:50%;background:#39FF14;animation:pwaDot 1.4s ease-in-out 0s infinite;opacity:0.35;"></div>'
-                    + '<div class="pwa-dot" style="width:6px;height:6px;border-radius:50%;background:#39FF14;animation:pwaDot 1.4s ease-in-out 0.18s infinite;opacity:0.35;"></div>'
-                    + '<div class="pwa-dot" style="width:6px;height:6px;border-radius:50%;background:#39FF14;animation:pwaDot 1.4s ease-in-out 0.36s infinite;opacity:0.35;"></div>'
+                    + '<div style="width:6px;height:6px;border-radius:50%;background:#39FF14;animation:pwaDot 1.4s ease-in-out 0s infinite;opacity:0.35;"></div>'
+                    + '<div style="width:6px;height:6px;border-radius:50%;background:#39FF14;animation:pwaDot 1.4s ease-in-out 0.18s infinite;opacity:0.35;"></div>'
+                    + '<div style="width:6px;height:6px;border-radius:50%;background:#39FF14;animation:pwaDot 1.4s ease-in-out 0.36s infinite;opacity:0.35;"></div>'
                     + '</div>';
                   var style = document.createElement("style");
                   style.textContent = "@keyframes pwaDot{0%,80%,100%{opacity:0.25;transform:scale(0.85)}40%{opacity:1;transform:scale(1)}}";
                   document.head.appendChild(style);
                   document.body.appendChild(el);
+                  var shownAt = Date.now();
+                  var MIN_MS = 1800;
                   function removeSplash() {
-                    el.style.opacity = "0";
-                    setTimeout(function() { el.remove(); }, 380);
+                    var wait = Math.max(0, MIN_MS - (Date.now() - shownAt));
+                    setTimeout(function() {
+                      el.style.opacity = "0";
+                      setTimeout(function() { if (el.parentNode) el.remove(); }, 420);
+                    }, wait);
                   }
                   if (document.readyState === "complete") {
-                    setTimeout(removeSplash, 400);
+                    removeSplash();
                   } else {
-                    window.addEventListener("load", function() { setTimeout(removeSplash, 400); }, { once: true });
+                    window.addEventListener("load", removeSplash, { once: true });
                   }
                 }
               } catch(e) {}
