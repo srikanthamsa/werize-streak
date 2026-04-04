@@ -28,7 +28,7 @@ function addDays(value: string, days: number) {
   return toLocalDateKey(date);
 }
 
-function isWeekend(dateKey: string) {
+export function isWeekend(dateKey: string) {
   const weekday = toLocalDateFromKey(dateKey).getDay();
   return weekday === 0 || weekday === 6;
 }
@@ -97,12 +97,12 @@ export function calculateMonthSummary(
   const workingDaysElapsed = completedOrInProgress.length;
   const targetMinutesToDate = workingDaysElapsed * DAILY_TARGET_MINUTES;
   const balanceMinutes = actualMinutesToDate - targetMinutesToDate;
-  const remainingDays = Math.max(1, effectiveTotalWorkingDays - workingDaysElapsed);
+  const remainingDays = Math.max(0, effectiveTotalWorkingDays - workingDaysElapsed);
   const remainingTargetMinutes = effectiveTotalWorkingDays * DAILY_TARGET_MINUTES - actualMinutesToDate;
-  const recommendedDailyAverageMinutes = Math.max(
-    0,
-    Math.round(remainingTargetMinutes / remainingDays),
-  );
+  const recommendedDailyAverageMinutes =
+    remainingDays === 0
+      ? 0
+      : Math.max(0, Math.round(remainingTargetMinutes / remainingDays));
 
   return {
     workingDaysElapsed,
@@ -115,6 +115,10 @@ export function calculateMonthSummary(
 }
 
 export function getDailyStatusMessage(entry: AttendanceDay) {
+  if (isWeekend(entry.date)) {
+    return "It's the weekend. No work required.";
+  }
+
   if (entry.status === "missing_swipe") {
     return "Missed Swipe - Please check greytHR.";
   }
@@ -228,14 +232,19 @@ export function calculateStreakData(entries: AttendanceDay[], todayDateKey = toL
     swipes: [],
     status: "missing_swipe" as const,
   };
+  const todayIsWeekend = isWeekend(todayDateKey);
   const workedToday = calculateWorkedMinutes(todayEntry.swipes);
-  const remainingMinutes = Math.max(0, DAILY_TARGET_MINUTES - workedToday);
-  const realTimeStatus = remainingMinutes <= 0 ? "safe" : remainingMinutes <= 120 ? "risk" : "danger";
-  const streakStatus = currentStreak === 0 && remainingMinutes > 0 ? "broken" : realTimeStatus === "safe" ? "safe" : "risk";
+  const remainingMinutes = todayIsWeekend ? 0 : Math.max(0, DAILY_TARGET_MINUTES - workedToday);
+  const realTimeStatus = todayIsWeekend || remainingMinutes <= 0 ? "safe" : remainingMinutes <= 120 ? "risk" : "danger";
+  const streakStatus = !todayIsWeekend && currentStreak === 0 && remainingMinutes > 0 ? "broken" : realTimeStatus === "safe" ? "safe" : "risk";
   const currentWeekKey = getWeekKey(todayDateKey);
   const weeklyForgivenessUsed = forgivenessByWeek.has(currentWeekKey);
 
-  const message = !todayEntry.swipes.length
+  const message = todayIsWeekend
+    ? currentStreak > 0
+      ? `Weekend. Streak is safe at ${currentStreak} days.`
+      : "It’s the weekend. No work required."
+    : !todayEntry.swipes.length
     ? currentStreak > 0
       ? "Clock in to protect the streak."
       : "Clock in to start the streak."
@@ -247,13 +256,19 @@ export function calculateStreakData(entries: AttendanceDay[], todayDateKey = toL
     ? `You’re ${formatMinutes(remainingMinutes)} short. Streak will break.`
     : `You’re ${formatMinutes(remainingMinutes)} short. Clear the day to start your streak.`;
 
-  const banner = !todayEntry.swipes.length
+  const banner = todayIsWeekend
+    ? null
+    : !todayEntry.swipes.length
     ? null
     : realTimeStatus === "safe"
     ? null
     : `You are ${formatMinutes(remainingMinutes)} short. Your streak is at risk.`;
 
-  const endOfDayFeedback = recoveredToday
+  const endOfDayFeedback = todayIsWeekend
+    ? currentStreak > 0
+      ? "Streak is safe over the weekend."
+      : "First streak is waiting. Start Monday!"
+    : recoveredToday
     ? "Clutched it. Streak saved."
     : realTimeStatus === "safe"
     ? "Streak continued"
@@ -277,13 +292,13 @@ export function calculateStreakData(entries: AttendanceDay[], todayDateKey = toL
     endOfDayFeedback,
     recoveredToday,
     notificationMessages: {
-      midday: !todayEntry.swipes.length || realTimeStatus === "safe"
+      midday: todayIsWeekend || !todayEntry.swipes.length || realTimeStatus === "safe"
         ? null
         : "You’re falling behind. Don’t lose your streak.",
-      evening: !todayEntry.swipes.length || realTimeStatus === "safe"
+      evening: todayIsWeekend || !todayEntry.swipes.length || realTimeStatus === "safe"
         ? null
         : `Last chance. ${formatMinutes(remainingMinutes)} to save your streak.`,
-      success: realTimeStatus === "safe" ? "+1 added. Streak alive!" : null,
+      success: !todayIsWeekend && realTimeStatus === "safe" ? "+1 added. Streak alive!" : null,
     },
   };
 }

@@ -48,19 +48,37 @@ export async function sendPushNotification(userId: string, title: string, body: 
   }
 }
 
+function toISTDateKey() {
+  const istDate = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
+  const year = istDate.getUTCFullYear();
+  const month = `${istDate.getUTCMonth() + 1}`.padStart(2, "0");
+  const day = `${istDate.getUTCDate()}`.padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function isWeekendDateKey(dateKey: string) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  const date = new Date(year, (month ?? 1) - 1, day ?? 1);
+  const weekday = date.getDay();
+  return weekday === 0 || weekday === 6;
+}
+
 export async function checkAndTrigger9hNotification(userId: string, workedMinutes: number) {
   if (workedMinutes < 540) return;
 
-  const supabase = getSupabaseAdmin();
-  const today = new Date().toISOString().split("T")[0];
+  // Don't fire completion notifications on weekends
+  const today = toISTDateKey();
+  if (isWeekendDateKey(today)) return;
 
-  // 1. Check if already notified today
+  const supabase = getSupabaseAdmin();
+
+  // 1. Check if already notified today (using IST midnight as the boundary)
   const { data: existing } = await supabase
     .from("notifications")
     .select("id")
     .eq("user_id", userId)
     .eq("type", "9h_clear")
-    .gte("created_at", `${today}T00:00:00Z`)
+    .gte("created_at", `${today}T00:00:00+05:30`)
     .limit(1)
     .maybeSingle();
 

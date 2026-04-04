@@ -5,6 +5,7 @@ import {
   calculateWorkedMinutes,
   getLeaderboardCards,
   getProgressPercent,
+  isWeekend,
 } from "@/lib/attendance";
 import type { AttendanceDay, LeaderboardEntry, MonthSummary, StreakData, UserProfile } from "@/lib/types";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
@@ -348,7 +349,7 @@ export async function getDashboardData(): Promise<DashboardData> {
 
   const workingDays = getWorkingDaysInMonth();
   const summary = calculateMonthSummary(normalizedEntries, workingDays);
-  const streak = calculateStreakData(normalizedEntries);
+  const streak = calculateStreakData(normalizedEntries, currentDateKey);
 
   if (!normalizedEntries.length) {
     return createEmptyDashboardData({
@@ -373,7 +374,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     monthEntries: normalizedEntries,
     leaderboardEntries,
     monthSummary: summary,
-    targetExitTime: calculateTargetExitTime(todayEntryLive.swipes),
+    targetExitTime: isWeekend(currentDateKey) ? null : calculateTargetExitTime(todayEntryLive.swipes),
     workedMinutes: calculateWorkedMinutes(todayEntryLive.swipes),
     progressPercent: getProgressPercent(todayEntryLive),
     leaderboardCards: getLeaderboardCards(leaderboardEntries),
