@@ -92,32 +92,43 @@ export default function RootLayout({
 
                   var style = document.createElement("style");
                   style.id = "pwa-splash-style";
-                  style.textContent = "@keyframes pwaDot{0%,80%,100%{opacity:0.25;transform:scale(0.85)}40%{opacity:1;transform:scale(1)}} @keyframes pwaSplashIn{from{opacity:0;transform:scale(0.88)}to{opacity:1;transform:scale(1)}}";
+                  style.textContent = [
+                    "@keyframes pwaDot{0%,80%,100%{opacity:0.25;transform:scale(0.85)}40%{opacity:1;transform:scale(1)}}",
+                    "@keyframes pwaSplashIn{from{opacity:0;transform:translateY(10px);scale:0.96}to{opacity:1;transform:translateY(0);scale:1}}",
+                    "#pwa-splash-screen{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:32px;background:#0B0B0C;transition:opacity 0.4s ease;}",
+                    "#pwa-splash-glow{position:absolute;width:100%;height:100%;background:radial-gradient(circle at center, rgba(57,255,20,0.08) 0%, transparent 70%);}",
+                  ].join("");
                   document.head.appendChild(style);
 
                   var el = document.createElement("div");
                   el.id = "pwa-splash-screen";
-                  el.style.cssText = [
-                    "position:fixed","inset:0","z-index:99999",
-                    "display:flex","flex-direction:column",
-                    "align-items:center","justify-content:center","gap:28px",
-                    "background:#0B0B0C",
-                    "animation:pwaSplashIn 0.45s cubic-bezier(0.34,1.56,0.64,1) both",
-                    "transition:opacity 0.4s ease",
-                  ].join(";");
-                  el.innerHTML = '<img src="/streak-logo-header-tight.png" alt="Streak" style="width:210px;height:auto;object-fit:contain;" />'
-                    + '<div style="display:flex;gap:6px;">'
-                    + '<div style="width:6px;height:6px;border-radius:50%;background:#39FF14;animation:pwaDot 1.4s ease-in-out 0s infinite;opacity:0.35;"></div>'
-                    + '<div style="width:6px;height:6px;border-radius:50%;background:#39FF14;animation:pwaDot 1.4s ease-in-out 0.18s infinite;opacity:0.35;"></div>'
-                    + '<div style="width:6px;height:6px;border-radius:50%;background:#39FF14;animation:pwaDot 1.4s ease-in-out 0.36s infinite;opacity:0.35;"></div>'
-                    + '</div>';
-                  // Append before body content loads so it's the first thing painted
-                  document.body
-                    ? document.body.prepend(el)
-                    : document.addEventListener("DOMContentLoaded", function() { document.body.prepend(el); });
+                  el.innerHTML = [
+                    '<div id="pwa-splash-glow"></div>',
+                    '<div style="position:relative;display:flex;flex-direction:column;align-items:center;gap:32px;animation:pwaSplashIn 0.6s cubic-bezier(0.23, 1, 0.32, 1) both;">',
+                    '  <img src="/streak-logo-header-tight.png" alt="Streak" style="width:210px;height:auto;opacity:0.95;" />',
+                    '  <div style="display:flex;gap:8px;">',
+                    '    <div style="width:7px;height:7px;border-radius:50%;background:#39FF14;animation:pwaDot 1.4s ease-in-out 0s infinite;opacity:0.35;"></div>',
+                    '    <div style="width:7px;height:7px;border-radius:50%;background:#39FF14;animation:pwaDot 1.4s ease-in-out 0.18s infinite;opacity:0.35;"></div>',
+                    '    <div style="width:7px;height:7px;border-radius:50%;background:#39FF14;animation:pwaDot 1.4s ease-in-out 0.36s infinite;opacity:0.35;"></div>',
+                    '  </div>',
+                    '</div>'
+                  ].join("");
+
+                  // Append before body content loads
+                  if (document.body) {
+                    document.body.prepend(el);
+                  } else {
+                    var observer = new MutationObserver(function(mutations, obs) {
+                      if (document.body) {
+                        document.body.prepend(el);
+                        obs.disconnect();
+                      }
+                    });
+                    observer.observe(document.documentElement, { childList: true });
+                  }
 
                   var shownAt = Date.now();
-                  var MIN_MS = 1800;
+                  var MIN_MS = 1600;
                   function removeSplash() {
                     var wait = Math.max(0, MIN_MS - (Date.now() - shownAt));
                     setTimeout(function() {
