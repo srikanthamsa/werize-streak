@@ -1034,8 +1034,30 @@ function NotificationsView({ notifications, profile }: { notifications: any[], p
           animation: "notifIn 0.28s cubic-bezier(0.23,1,0.32,1) both",
         }}
       >
-        {/* Type-coloured left accent strip */}
-        <div className="absolute left-0 top-0 h-full w-[3px] rounded-l-[18px]" style={{ background: cfg.accent, opacity: 0.7 }} />
+        {/* Type-coloured wave accent — left ~8% of card */}
+        <svg
+          viewBox="0 0 28 100"
+          preserveAspectRatio="none"
+          xmlns="http://www.w3.org/2000/svg"
+          className="pointer-events-none absolute left-0 top-0 h-full"
+          style={{ width: "28px" }}
+          aria-hidden="true"
+        >
+          {/* Filled wave body */}
+          <path
+            d="M0,0 L20,0 C26,14 14,28 20,50 C26,72 14,86 20,100 L0,100 Z"
+            fill={cfg.accent}
+            fillOpacity="0.16"
+          />
+          {/* Crisp wave edge line */}
+          <path
+            d="M20,0 C26,14 14,28 20,50 C26,72 14,86 20,100"
+            fill="none"
+            stroke={cfg.accent}
+            strokeWidth="1.5"
+            strokeOpacity="0.55"
+          />
+        </svg>
 
         <div className="flex w-full items-center gap-4 px-5 py-[14px]">
           {/* Icon */}
