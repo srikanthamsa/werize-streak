@@ -1056,10 +1056,15 @@ function NotificationsView({ notifications, profile }: { notifications: any[], p
           );
         })
       ) : (
-        <div className="mt-6 flex w-full flex-col items-center justify-center py-12 text-center opacity-70">
-          <svg xmlns="http://www.w3.org/2000/svg" className="mb-4 h-6 w-6 text-[#71717A]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-          </svg>
+        <div className="mt-6 flex w-full flex-col items-center justify-center text-center">
+          <div className="w-full" style={{ height: "320px" }}>
+            <DotLottieReact
+              src="/empty-ghost.json"
+              loop
+              autoplay
+              style={{ width: "100%", height: "100%" }}
+            />
+          </div>
           <p className="text-sm text-[#71717A]">No notifications or activity yet.</p>
         </div>
       )}
