@@ -987,6 +987,142 @@ function InsightsView({ monthEntries, monthSummary }: Pick<DashboardData, "month
   );
 }
 
+// Swipeable notification card — lives outside NotificationsView to avoid
+// remounting on every parent render.
+function SwipeNotifCard({
+  n,
+  isDeleting,
+  onDismiss,
+}: {
+  n: any;
+  isDeleting: boolean;
+  onDismiss: () => void;
+}) {
+  const [dx, setDx]           = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const startX                = useRef(0);
+  const isUnread              = n.is_unread ?? false;
+  const THRESHOLD             = 88; // px left-swipe to confirm dismiss
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    startX.current = e.touches[0].clientX;
+    setDragging(true);
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    const delta = e.touches[0].clientX - startX.current;
+    if (delta < 0) setDx(delta); // left-only
+  };
+  const onTouchEnd = () => {
+    setDragging(false);
+    if (dx < -THRESHOLD) {
+      onDismiss();
+    } else {
+      setDx(0);
+    }
+  };
+
+  // How far along the swipe threshold (0–1) — drives the reveal bg opacity
+  const progress = Math.min(Math.abs(dx) / THRESHOLD, 1);
+
+  return (
+    <div
+      className="relative overflow-hidden rounded-[20px]"
+      style={{ animation: "notifIn 0.3s cubic-bezier(0.23,1,0.32,1) both" }}
+    >
+      {/* Dismiss reveal layer (shown as card slides left) */}
+      <div
+        className="absolute inset-0 flex items-center justify-end rounded-[20px] pr-5"
+        style={{ background: `rgba(248,113,113,${0.08 + progress * 0.14})` }}
+        aria-hidden="true"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="h-[18px] w-[18px]"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#F87171"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{ opacity: progress }}
+        >
+          <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+        </svg>
+      </div>
+
+      {/* Glass card */}
+      <div
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        className={`relative flex items-start gap-3 overflow-hidden rounded-[20px] px-4 py-[14px] ${isDeleting ? "opacity-40 pointer-events-none" : ""}`}
+        style={{
+          background: "rgba(255,255,255,0.045)",
+          backdropFilter: "blur(28px)",
+          WebkitBackdropFilter: "blur(28px)",
+          border: "1px solid rgba(255,255,255,0.08)",
+          boxShadow: "0px 4px 15px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)",
+          transform: `translateX(${dx}px)`,
+          transition: dragging ? "none" : "transform 0.38s cubic-bezier(0.23,1,0.32,1), opacity 0.2s",
+          willChange: "transform",
+        }}
+      >
+        {/* Unread glow line — flush left edge */}
+        {isUnread && (
+          <div
+            className="absolute left-0 top-0 h-full w-[2px] rounded-l-[20px]"
+            style={{
+              background: "#39FF14",
+              boxShadow: "0 0 6px #39FF14, 0 0 14px rgba(57,255,20,0.45)",
+            }}
+          />
+        )}
+
+        {/* Icon — 10% neon green bg, solid neon green bell */}
+        <div
+          className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+          style={{ background: "rgba(57,255,20,0.10)" }}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-[18px] w-[18px]"
+            viewBox="0 0 24 24"
+            fill="#39FF14"
+          >
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+          </svg>
+        </div>
+
+        {/* Text block */}
+        <div className="flex min-w-0 flex-1 flex-col pr-14">
+          <p className="text-[15px] font-semibold leading-snug text-white">
+            {n.title || "Notification"}
+          </p>
+          <p
+            className="mt-[3px] text-[13px] text-[#A0A0A0]"
+            style={{
+              lineHeight: 1.4,
+              display: "-webkit-box",
+              WebkitLineClamp: 3,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+            }}
+          >
+            {n.body}
+          </p>
+        </div>
+
+        {/* Timestamp — absolute top-right */}
+        <p className="absolute right-4 top-[14px] text-[11px] text-[#808080]">
+          {formatRelativeTime(n.created_at)}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function NotificationsView({ notifications, profile }: { notifications: any[], profile: any }) {
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
 
@@ -995,127 +1131,20 @@ function NotificationsView({ notifications, profile }: { notifications: any[], p
   const todayItems   = notifications.filter(n => new Date(n.created_at) >= todayStart);
   const earlierItems = notifications.filter(n => new Date(n.created_at) < todayStart);
 
-  const typeConfig = (type: string) => {
-    if (type === "achievement") return {
-      accent: "#FBBF24",
-      iconBg: "rgba(251,191,36,0.12)",
-      border: "rgba(251,191,36,0.18)",
-      icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-[17px] w-[17px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="7" /><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" /></svg>,
-    };
-    if (type === "streak") return {
-      accent: "#F87171",
-      iconBg: "rgba(248,113,113,0.12)",
-      border: "rgba(248,113,113,0.18)",
-      icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-[17px] w-[17px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.256 1.185-3.103a2.5 2.5 0 0 0 3.315 3.603z" /></svg>,
-    };
-    if (type === "new_join") return {
-      accent: "#39FF14",
-      iconBg: "rgba(57,255,20,0.12)",
-      border: "rgba(57,255,20,0.18)",
-      icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-[17px] w-[17px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>,
-    };
-    return {
-      accent: "#A1A1AA",
-      iconBg: "rgba(161,161,170,0.10)",
-      border: "#2d2d33",
-      icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-[17px] w-[17px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
-    };
-  };
-
-  const renderItem = (n: any) => {
-    const isDeleting = deletingIds.has(n.id);
-    const cfg = typeConfig(n.type);
-    return (
-      <div
-        key={n.id}
-        className={`relative flex items-center gap-4 overflow-hidden rounded-[18px] bg-[#17171A] transition-opacity ${isDeleting ? "opacity-40" : ""}`}
-        style={{
-          border: `1px solid ${cfg.border}`,
-          animation: "notifIn 0.28s cubic-bezier(0.23,1,0.32,1) both",
-        }}
-      >
-        {/* Phoenix wing accent — 4 bold feathers fanning from bottom-left */}
-        <svg
-          viewBox="0 0 36 72"
-          xmlns="http://www.w3.org/2000/svg"
-          className="pointer-events-none absolute left-0 top-1/2"
-          style={{ width: "36px", height: "72px", transform: "translateY(-50%)" }}
-          aria-hidden="true"
-        >
-          {/* Feather 1 — low sweep, nearly horizontal */}
-          <path
-            d="M2,68 C10,60 26,56 34,54 C28,58 12,62 2,70 Z"
-            fill={cfg.accent} fillOpacity="0.32"
-            stroke={cfg.accent} strokeWidth="0.8" strokeOpacity="0.55"
-            strokeLinejoin="round"
-          />
-          {/* Feather 2 — mid-low sweep */}
-          <path
-            d="M2,62 C8,48 24,36 32,26 C26,36 10,48 1,60 Z"
-            fill={cfg.accent} fillOpacity="0.38"
-            stroke={cfg.accent} strokeWidth="0.9" strokeOpacity="0.62"
-            strokeLinejoin="round"
-          />
-          {/* Feather 3 — steep sweep */}
-          <path
-            d="M2,54 C7,38 18,20 26,8 C20,20 9,38 1,52 Z"
-            fill={cfg.accent} fillOpacity="0.44"
-            stroke={cfg.accent} strokeWidth="1" strokeOpacity="0.70"
-            strokeLinejoin="round"
-          />
-          {/* Feather 4 — near vertical, topmost */}
-          <path
-            d="M3,46 C7,30 14,14 19,3 C17,13 10,30 2,44 Z"
-            fill={cfg.accent} fillOpacity="0.52"
-            stroke={cfg.accent} strokeWidth="1.1" strokeOpacity="0.80"
-            strokeLinejoin="round"
-          />
-        </svg>
-
-        <div className="flex w-full items-center gap-4 px-5 py-[14px]">
-          {/* Icon */}
-          <div
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
-            style={{ background: cfg.iconBg, color: cfg.accent }}
-          >
-            {cfg.icon}
-          </div>
-
-          {/* Text */}
-          <div className="flex min-w-0 flex-1 flex-col">
-            <p className="text-[15px] font-medium leading-snug text-[rgba(255,255,255,0.92)]">{n.title || "Alert"}</p>
-            <p className="mt-0.5 text-[13px] leading-[1.45] text-[rgba(255,255,255,0.58)]">{n.body}</p>
-            <p className="mt-1.5 text-[11px] tracking-wide" style={{ color: cfg.accent, opacity: 0.6 }}>{formatRelativeTime(n.created_at)}</p>
-          </div>
-
-          {/* Dismiss */}
-          <button
-            onClick={async () => {
-              setDeletingIds(prev => new Set(prev).add(n.id));
-              const res = await deleteNotificationAction(n.id);
-              if (!res.ok) {
-                alert(res.message);
-                setDeletingIds(prev => { const next = new Set(prev); next.delete(n.id); return next; });
-              }
-            }}
-            disabled={isDeleting}
-            className="shrink-0 p-1.5 text-[rgba(255,255,255,0.35)] transition-colors hover:text-[#F87171] disabled:opacity-40"
-          >
-            {isDeleting
-              ? <svg className="h-4 w-4 animate-spin text-[#F87171]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-              : <svg xmlns="http://www.w3.org/2000/svg" className="h-[15px] w-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-            }
-          </button>
-        </div>
-      </div>
-    );
+  const handleDismiss = async (id: string) => {
+    setDeletingIds(prev => new Set(prev).add(id));
+    const res = await deleteNotificationAction(id);
+    if (!res.ok) {
+      alert(res.message);
+      setDeletingIds(prev => { const next = new Set(prev); next.delete(id); return next; });
+    }
   };
 
   return (
     <>
       <style>{`
         @keyframes notifIn {
-          from { opacity: 0; transform: translateY(6px); }
+          from { opacity: 0; transform: translateY(8px); }
           to   { opacity: 1; transform: translateY(0); }
         }
         @keyframes ghostFloat {
@@ -1125,15 +1154,19 @@ function NotificationsView({ notifications, profile }: { notifications: any[], p
       `}</style>
 
       <div className="w-full max-w-6xl">
-        {/* Header */}
         <h2 className="mb-6 pt-1 text-[24px] font-semibold tracking-[0.3px] text-[rgba(255,255,255,0.88)]">Today</h2>
 
         {notifications.length > 0 ? (
           <div className="flex flex-col gap-3">
-            {/* Today items */}
-            {todayItems.map(renderItem)}
+            {todayItems.map(n => (
+              <SwipeNotifCard
+                key={n.id}
+                n={n}
+                isDeleting={deletingIds.has(n.id)}
+                onDismiss={() => handleDismiss(n.id)}
+              />
+            ))}
 
-            {/* Earlier divider + items */}
             {earlierItems.length > 0 && (
               <>
                 <div className="flex items-center gap-3 my-2 py-2">
@@ -1141,7 +1174,14 @@ function NotificationsView({ notifications, profile }: { notifications: any[], p
                   <span className="text-[12px] font-medium tracking-[0.8px] text-[rgba(255,255,255,0.45)] uppercase">Earlier</span>
                   <div className="h-px flex-1 bg-[rgba(255,255,255,0.10)]" />
                 </div>
-                {earlierItems.map(renderItem)}
+                {earlierItems.map(n => (
+                  <SwipeNotifCard
+                    key={n.id}
+                    n={n}
+                    isDeleting={deletingIds.has(n.id)}
+                    onDismiss={() => handleDismiss(n.id)}
+                  />
+                ))}
               </>
             )}
           </div>
