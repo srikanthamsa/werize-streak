@@ -1034,28 +1034,43 @@ function NotificationsView({ notifications, profile }: { notifications: any[], p
           animation: "notifIn 0.28s cubic-bezier(0.23,1,0.32,1) both",
         }}
       >
-        {/* Type-coloured wave accent — left ~8% of card */}
+        {/* Wing accent — 3 stacked leaves mirroring the app icon, left ~8% */}
         <svg
-          viewBox="0 0 28 100"
-          preserveAspectRatio="none"
+          viewBox="0 0 32 64"
           xmlns="http://www.w3.org/2000/svg"
-          className="pointer-events-none absolute left-0 top-0 h-full"
-          style={{ width: "28px" }}
+          className="pointer-events-none absolute left-0 top-1/2"
+          style={{ width: "32px", height: "64px", transform: "translateY(-50%)" }}
           aria-hidden="true"
         >
-          {/* Filled wave body */}
+          {/* Back leaf — faintest */}
           <path
-            d="M0,0 L20,0 C26,14 14,28 20,50 C26,72 14,86 20,100 L0,100 Z"
+            d="M5,58 C9,42 22,26 28,10 C22,24 10,40 4,56 Z"
+            fill={cfg.accent}
+            fillOpacity="0.10"
+            stroke={cfg.accent}
+            strokeWidth="0.8"
+            strokeOpacity="0.22"
+            strokeLinejoin="round"
+          />
+          {/* Middle leaf */}
+          <path
+            d="M3,50 C8,34 21,18 27,4 C20,17 8,33 2,48 Z"
             fill={cfg.accent}
             fillOpacity="0.16"
-          />
-          {/* Crisp wave edge line */}
-          <path
-            d="M20,0 C26,14 14,28 20,50 C26,72 14,86 20,100"
-            fill="none"
             stroke={cfg.accent}
-            strokeWidth="1.5"
-            strokeOpacity="0.55"
+            strokeWidth="0.8"
+            strokeOpacity="0.32"
+            strokeLinejoin="round"
+          />
+          {/* Front leaf — most prominent */}
+          <path
+            d="M1,62 C7,46 20,30 26,14 C18,29 6,46 0,60 Z"
+            fill={cfg.accent}
+            fillOpacity="0.26"
+            stroke={cfg.accent}
+            strokeWidth="1"
+            strokeOpacity="0.50"
+            strokeLinejoin="round"
           />
         </svg>
 
