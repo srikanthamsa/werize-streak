@@ -1034,42 +1034,40 @@ function NotificationsView({ notifications, profile }: { notifications: any[], p
           animation: "notifIn 0.28s cubic-bezier(0.23,1,0.32,1) both",
         }}
       >
-        {/* Wing accent — 3 stacked leaves mirroring the app icon, left ~8% */}
+        {/* Phoenix wing accent — 4 bold feathers fanning from bottom-left */}
         <svg
-          viewBox="0 0 32 64"
+          viewBox="0 0 36 72"
           xmlns="http://www.w3.org/2000/svg"
           className="pointer-events-none absolute left-0 top-1/2"
-          style={{ width: "32px", height: "64px", transform: "translateY(-50%)" }}
+          style={{ width: "36px", height: "72px", transform: "translateY(-50%)" }}
           aria-hidden="true"
         >
-          {/* Back leaf — faintest */}
+          {/* Feather 1 — low sweep, nearly horizontal */}
           <path
-            d="M5,58 C9,42 22,26 28,10 C22,24 10,40 4,56 Z"
-            fill={cfg.accent}
-            fillOpacity="0.10"
-            stroke={cfg.accent}
-            strokeWidth="0.8"
-            strokeOpacity="0.22"
+            d="M2,68 C10,60 26,56 34,54 C28,58 12,62 2,70 Z"
+            fill={cfg.accent} fillOpacity="0.32"
+            stroke={cfg.accent} strokeWidth="0.8" strokeOpacity="0.55"
             strokeLinejoin="round"
           />
-          {/* Middle leaf */}
+          {/* Feather 2 — mid-low sweep */}
           <path
-            d="M3,50 C8,34 21,18 27,4 C20,17 8,33 2,48 Z"
-            fill={cfg.accent}
-            fillOpacity="0.16"
-            stroke={cfg.accent}
-            strokeWidth="0.8"
-            strokeOpacity="0.32"
+            d="M2,62 C8,48 24,36 32,26 C26,36 10,48 1,60 Z"
+            fill={cfg.accent} fillOpacity="0.38"
+            stroke={cfg.accent} strokeWidth="0.9" strokeOpacity="0.62"
             strokeLinejoin="round"
           />
-          {/* Front leaf — most prominent */}
+          {/* Feather 3 — steep sweep */}
           <path
-            d="M1,62 C7,46 20,30 26,14 C18,29 6,46 0,60 Z"
-            fill={cfg.accent}
-            fillOpacity="0.26"
-            stroke={cfg.accent}
-            strokeWidth="1"
-            strokeOpacity="0.50"
+            d="M2,54 C7,38 18,20 26,8 C20,20 9,38 1,52 Z"
+            fill={cfg.accent} fillOpacity="0.44"
+            stroke={cfg.accent} strokeWidth="1" strokeOpacity="0.70"
+            strokeLinejoin="round"
+          />
+          {/* Feather 4 — near vertical, topmost */}
+          <path
+            d="M3,46 C7,30 14,14 19,3 C17,13 10,30 2,44 Z"
+            fill={cfg.accent} fillOpacity="0.52"
+            stroke={cfg.accent} strokeWidth="1.1" strokeOpacity="0.80"
             strokeLinejoin="round"
           />
         </svg>
