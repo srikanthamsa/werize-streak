@@ -21,7 +21,6 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: "Streak",
   },
-  manifest: "/manifest.json",
 };
 
 export const viewport = {
@@ -87,45 +86,47 @@ export default function RootLayout({
                   window.matchMedia("(display-mode: standalone)").matches;
                 if (isStandalone) {
                   // Immediately hide body content so the page never flashes
-                  // through before the splash is painted.
-                  document.documentElement.style.background = "#0B0B0C";
-
-                  var style = document.createElement("style");
-                  style.id = "pwa-splash-style";
-                  style.textContent = [
-                    "@keyframes pwaDot{0%,80%,100%{opacity:0.25;transform:scale(0.85)}40%{opacity:1;transform:scale(1)}}",
-                    "@keyframes pwaSplashIn{from{opacity:0;transform:translateY(10px);scale:0.96}to{opacity:1;transform:translateY(0);scale:1}}",
-                    "#pwa-splash-screen{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:32px;background:#0B0B0C;transition:opacity 0.4s ease;}",
-                    "#pwa-splash-glow{position:absolute;width:100%;height:100%;background:radial-gradient(circle at center, rgba(57,255,20,0.08) 0%, transparent 70%);}",
-                  ].join("");
-                  document.head.appendChild(style);
-
-                  var el = document.createElement("div");
-                  el.id = "pwa-splash-screen";
-                  el.innerHTML = [
-                    '<div id="pwa-splash-glow"></div>',
-                    '<div style="position:relative;display:flex;flex-direction:column;align-items:center;gap:32px;animation:pwaSplashIn 0.6s cubic-bezier(0.23, 1, 0.32, 1) both;">',
-                    '  <img src="/streak-logo-header-tight.png" alt="Streak" style="width:210px;height:auto;opacity:0.95;" />',
-                    '  <div style="display:flex;gap:8px;">',
-                    '    <div style="width:7px;height:7px;border-radius:50%;background:#39FF14;animation:pwaDot 1.4s ease-in-out 0s infinite;opacity:0.35;"></div>',
-                    '    <div style="width:7px;height:7px;border-radius:50%;background:#39FF14;animation:pwaDot 1.4s ease-in-out 0.18s infinite;opacity:0.35;"></div>',
-                    '    <div style="width:7px;height:7px;border-radius:50%;background:#39FF14;animation:pwaDot 1.4s ease-in-out 0.36s infinite;opacity:0.35;"></div>',
-                    '  </div>',
-                    '</div>'
-                  ].join("");
-
-                  // Append before body content loads
-                  if (document.body) {
-                    document.body.prepend(el);
-                  } else {
-                    var observer = new MutationObserver(function(mutations, obs) {
-                      if (document.body) {
-                        document.body.prepend(el);
-                        obs.disconnect();
-                      }
-                    });
-                    observer.observe(document.documentElement, { childList: true });
-                  }
+                   // through before the splash is painted.
+                   document.documentElement.style.background = "#0B0B0C";
+ 
+                   var style = document.createElement("style");
+                   style.id = "pwa-splash-style";
+                   style.textContent = [
+                     "@keyframes pwaDot{0%,80%,100%{opacity:0.25;transform:scale(0.85)}40%{opacity:1;transform:scale(1)}}",
+                     "@keyframes pwaSplashIn{from{opacity:0;transform:translateY(10px);scale:0.96}to{opacity:1;transform:translateY(0);scale:1}}",
+                     "#pwa-splash-screen{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:32px;background:#0B0B0C;transition:opacity 0.4s ease;}",
+                     "#pwa-splash-glow{position:absolute;width:100%;height:100%;background:radial-gradient(circle at center, rgba(57,255,20,0.08) 0%, transparent 70%);}",
+                   ].join("");
+                   document.head.appendChild(style);
+ 
+                   var el = document.createElement("div");
+                   el.id = "pwa-splash-screen";
+                   el.innerHTML = [
+                     '<div id="pwa-splash-glow"></div>',
+                     '<div style="position:relative;display:flex;flex-direction:column;align-items:center;gap:32px;animation:pwaSplashIn 0.6s cubic-bezier(0.23, 1, 0.32, 1) both;">',
+                     '  <img src="/streak-app-icon.png" alt="Streak" style="width:120px;height:120px;opacity:0.95;border-radius:24px;" />',
+                     '  <div style="display:flex;gap:8px;">',
+                     '    <div style="width:7px;height:7px;border-radius:50%;background:#39FF14;animation:pwaDot 1.4s ease-in-out 0s infinite;opacity:0.35;"></div>',
+                     '    <div style="width:7px;height:7px;border-radius:50%;background:#39FF14;animation:pwaDot 1.4s ease-in-out 0.18s infinite;opacity:0.35;"></div>',
+                     '    <div style="width:7px;height:7px;border-radius:50%;background:#39FF14;animation:pwaDot 1.4s ease-in-out 0.36s infinite;opacity:0.35;"></div>',
+                     '  </div>',
+                     '</div>'
+                   ].join("");
+ 
+                   // Append before body content loads
+                   if (document.body) {
+                     document.body.style.background = "#0B0B0C";
+                     document.body.prepend(el);
+                   } else {
+                     var observer = new MutationObserver(function(mutations, obs) {
+                       if (document.body) {
+                         document.body.style.background = "#0B0B0C";
+                         document.body.prepend(el);
+                         obs.disconnect();
+                       }
+                     });
+                     observer.observe(document.documentElement, { childList: true });
+                   }
 
                   var shownAt = Date.now();
                   var MIN_MS = 1600;

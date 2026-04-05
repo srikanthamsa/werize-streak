@@ -9,13 +9,13 @@ export async function GET(request: Request) {
   const w = Math.max(1, Math.min(2796, Number(searchParams.get("w") || 1290)));
   const h = Math.max(1, Math.min(2796, Number(searchParams.get("h") || 2796)));
 
-  // More reliable origin detection for various environments
   const proto = request.headers.get("x-forwarded-proto") || "http";
   const host = request.headers.get("host");
   const origin = host ? `${proto}://${host}` : new URL(request.url).origin;
 
-  const logoUrl = `${origin}/streak-logo-header-tight.png`;
-  const logoWidth = Math.round(w * 0.55); // 55% of screen width
+  // Use the smaller app-icon for the native splash to ensure fast loading
+  const logoUrl = `${origin}/streak-app-icon.png`;
+  const logoWidth = Math.round(w * 0.45); // 45% of screen width
 
   return new ImageResponse(
     (
@@ -33,7 +33,7 @@ export async function GET(request: Request) {
           overflow: "hidden",
         }}
       >
-        {/* Large ambient glow */}
+        {/* Large ambient glow fallback */}
         <div
           style={{
             position: "absolute",
@@ -57,13 +57,14 @@ export async function GET(request: Request) {
           }}
         />
 
-        {/* Logo container with fallback text if image fails */}
+        {/* Logo container */}
         <div style={{ display: "flex", position: "relative" }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={logoUrl}
             alt="Streak"
             width={logoWidth}
+            height={logoWidth}
             style={{ 
               objectFit: "contain",
               opacity: 1,
@@ -88,6 +89,12 @@ export async function GET(request: Request) {
         </div>
       </div>
     ),
-    { width: w, height: h }
+    { 
+      width: w, 
+      height: h,
+      headers: {
+        "Cache-Control": "public, max-age=31536000, immutable",
+      },
+    }
   );
 }
