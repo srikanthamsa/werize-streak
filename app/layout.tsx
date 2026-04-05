@@ -116,12 +116,12 @@ export default function RootLayout({
                    // Append before body content loads
                    if (document.body) {
                      document.body.style.background = "#0B0B0C";
-                     document.body.prepend(el);
+                     document.body.appendChild(el);
                    } else {
                      var observer = new MutationObserver(function(mutations, obs) {
                        if (document.body) {
                          document.body.style.background = "#0B0B0C";
-                         document.body.prepend(el);
+                         document.body.appendChild(el);
                          obs.disconnect();
                        }
                      });

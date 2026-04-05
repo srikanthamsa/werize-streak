@@ -1,6 +1,8 @@
 import { ImageResponse } from "next/og";
+import fs from "fs";
+import path from "path";
 
-export const runtime = "edge";
+export const runtime = "nodejs";
 
 // Generates the apple-touch-startup-image PNG for iOS PWA splash screen.
 // Called with ?w=<width>&h=<height> matching physical pixel dimensions per device.
@@ -9,12 +11,11 @@ export async function GET(request: Request) {
   const w = Math.max(1, Math.min(2796, Number(searchParams.get("w") || 1290)));
   const h = Math.max(1, Math.min(2796, Number(searchParams.get("h") || 2796)));
 
-  const proto = request.headers.get("x-forwarded-proto") || "http";
-  const host = request.headers.get("host");
-  const origin = host ? `${proto}://${host}` : new URL(request.url).origin;
+  // Read icon directly from the filesystem — no self-referencing HTTP fetch needed.
+  const iconPath = path.join(process.cwd(), "public", "streak-app-icon.png");
+  const iconData = fs.readFileSync(iconPath);
+  const iconSrc = `data:image/png;base64,${iconData.toString("base64")}`;
 
-  // Use the smaller app-icon for the native splash to ensure fast loading
-  const logoUrl = `${origin}/streak-app-icon.png`;
   const logoWidth = Math.round(w * 0.45); // 45% of screen width
 
   return new ImageResponse(
@@ -61,11 +62,11 @@ export async function GET(request: Request) {
         <div style={{ display: "flex", position: "relative" }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={logoUrl}
+            src={iconSrc}
             alt="Streak"
             width={logoWidth}
             height={logoWidth}
-            style={{ 
+            style={{
               objectFit: "contain",
               opacity: 1,
             }}
@@ -89,8 +90,8 @@ export async function GET(request: Request) {
         </div>
       </div>
     ),
-    { 
-      width: w, 
+    {
+      width: w,
       height: h,
       headers: {
         "Cache-Control": "public, max-age=31536000, immutable",

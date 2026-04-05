@@ -78,7 +78,9 @@
       "Bash(grep -r probe /Users/srikanthamsa/dev/logout --include=*.tsx --include=*.ts)",
       "Bash(npx vercel:*)",
       "Bash(npm run:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(xargs ls:*)",
+      "Bash(curl -s -o /tmp/splash-test.png -w \"%{http_code} content-type:%{content_type} size:%{size_download}\" \"http://localhost:3000/splash?w=1170&h=2532\")"
     ]
   }
 }
