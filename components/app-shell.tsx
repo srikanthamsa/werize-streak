@@ -1058,7 +1058,7 @@ function SwipeNotifCard({
         onTouchEnd={onTouchEnd}
         className={`relative flex items-start gap-3 overflow-hidden rounded-[20px] px-4 py-[14px] ${isDeleting ? "opacity-40 pointer-events-none" : ""}`}
         style={{
-          background: "rgba(23, 23, 23, 1)",
+          background: "rgba(23, 23, 23, 0.25)",
           backdropFilter: "blur(28px)",
           WebkitBackdropFilter: "blur(28px)",
           border: "1px solid rgba(255,255,255,0.08)",
