@@ -996,56 +996,79 @@ function NotificationsView({ notifications, profile }: { notifications: any[], p
   const earlierItems = notifications.filter(n => new Date(n.created_at) < todayStart);
 
   const iconFor = (type: string) => {
-    const cls = "h-5 w-5";
+    const cls = "h-[17px] w-[17px]";
     if (type === "achievement") return <svg xmlns="http://www.w3.org/2000/svg" className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="7" /><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" /></svg>;
     if (type === "streak")      return <svg xmlns="http://www.w3.org/2000/svg" className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.256 1.185-3.103a2.5 2.5 0 0 0 3.315 3.603z" /></svg>;
     if (type === "new_join")    return <svg xmlns="http://www.w3.org/2000/svg" className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>;
-    return <svg xmlns="http://www.w3.org/2000/svg" className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="m12 8 4 4-4 4" /><path d="M8 12h7" /></svg>;
+    return <svg xmlns="http://www.w3.org/2000/svg" className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>;
   };
-
-  const iconBg = (type: string) =>
-    type === "achievement" ? "bg-[rgba(251,191,36,0.1)] border-[rgba(251,191,36,0.2)] text-[#FBBF24]" :
-    type === "streak"      ? "bg-[rgba(248,113,113,0.1)] border-[rgba(248,113,113,0.2)] text-[#F87171]" :
-    type === "new_join"    ? "bg-[rgba(57,255,20,0.1)] border-[rgba(57,255,20,0.2)] text-[#39FF14]" :
-                             "bg-[rgba(161,161,170,0.1)] border-[rgba(161,161,170,0.2)] text-[#A1A1AA]";
 
   const renderItem = (n: any) => {
     const isDeleting = deletingIds.has(n.id);
     return (
       <div
         key={n.id}
-        className={`flex items-start gap-4 rounded-[18px] bg-[#17171A] px-5 py-4 transition-opacity ${isDeleting ? "opacity-40" : ""}`}
-        style={{ animation: "notifIn 0.28s cubic-bezier(0.23,1,0.32,1) both" }}
+        className={`relative flex items-center gap-4 overflow-hidden rounded-[10px] px-5 py-[13px] transition-opacity ${isDeleting ? "opacity-40" : ""}`}
+        style={{
+          background: "#030303",
+          border: "1px solid rgba(57,255,20,0.18)",
+          boxShadow: "rgba(57,255,20,0.07) 0px 8px 28px",
+          animation: "notifIn 0.28s cubic-bezier(0.23,1,0.32,1) both",
+        }}
       >
-        <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border ${iconBg(n.type)}`}>
+        {/* Wave decoration – mirrors the uiverse card style */}
+        <svg
+          viewBox="0 0 200 200"
+          xmlns="http://www.w3.org/2000/svg"
+          className="pointer-events-none absolute"
+          style={{ transform: "rotate(90deg)", left: "-31px", top: "30px", width: "80px" }}
+          fill="rgba(57,255,20,0.09)"
+        >
+          <path d="M 0 100 C 30 60, 70 140, 100 100 C 130 60, 170 140, 200 100 L 200 200 L 0 200 Z" />
+        </svg>
+
+        {/* Icon */}
+        <div
+          className="relative z-10 ml-2 flex h-[35px] w-[35px] shrink-0 items-center justify-center rounded-full"
+          style={{ background: "rgba(57,255,20,0.12)", color: "#39FF14" }}
+        >
           {iconFor(n.type)}
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1 min-w-0">
-              <p className="text-[15px] font-medium leading-snug text-white">{n.title || "Alert"}</p>
-              <p className="mt-1 text-[13px] leading-[1.5] text-[rgba(255,255,255,0.55)]">{n.body}</p>
-            </div>
-            <button
-              onClick={async () => {
-                setDeletingIds(prev => new Set(prev).add(n.id));
-                const res = await deleteNotificationAction(n.id);
-                if (!res.ok) {
-                  alert(res.message);
-                  setDeletingIds(prev => { const next = new Set(prev); next.delete(n.id); return next; });
-                }
-              }}
-              disabled={isDeleting}
-              className="shrink-0 text-[rgba(255,255,255,0.25)] hover:text-[#F87171] transition p-1.5 disabled:opacity-50"
-            >
-              {isDeleting
-                ? <svg className="h-4 w-4 animate-spin text-[#F87171]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-                : <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg>
-              }
-            </button>
-          </div>
-          <p className="mt-2 text-[12px] tracking-wide text-[rgba(255,255,255,0.32)]">{formatRelativeTime(n.created_at)}</p>
+
+        {/* Text */}
+        <div className="relative z-10 flex min-w-0 flex-1 flex-col justify-center">
+          <p className="text-[15px] font-bold leading-snug" style={{ color: "#39FF14" }}>
+            {n.title || "Alert"}
+          </p>
+          <p className="mt-0.5 text-[13px] leading-[1.4]" style={{ color: "rgba(255,255,255,0.55)" }}>
+            {n.body}
+          </p>
+          <p className="mt-1.5 text-[11px] tracking-wide" style={{ color: "rgba(57,255,20,0.55)" }}>
+            {formatRelativeTime(n.created_at)}
+          </p>
         </div>
+
+        {/* Delete */}
+        <button
+          onClick={async () => {
+            setDeletingIds(prev => new Set(prev).add(n.id));
+            const res = await deleteNotificationAction(n.id);
+            if (!res.ok) {
+              alert(res.message);
+              setDeletingIds(prev => { const next = new Set(prev); next.delete(n.id); return next; });
+            }
+          }}
+          disabled={isDeleting}
+          className="relative z-10 shrink-0 p-1.5 transition-colors disabled:opacity-50"
+          style={{ color: "rgba(255,255,255,0.45)" }}
+          onMouseEnter={e => (e.currentTarget.style.color = "#F87171")}
+          onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.45)")}
+        >
+          {isDeleting
+            ? <svg className="h-4 w-4 animate-spin" style={{ color: "#F87171" }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+            : <svg xmlns="http://www.w3.org/2000/svg" className="h-[17px] w-[17px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          }
+        </button>
       </div>
     );
   };
