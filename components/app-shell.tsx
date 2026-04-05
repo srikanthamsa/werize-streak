@@ -998,11 +998,11 @@ function SwipeNotifCard({
   isDeleting: boolean;
   onDismiss: () => void;
 }) {
-  const [dx, setDx]           = useState(0);
+  const [dx, setDx] = useState(0);
   const [dragging, setDragging] = useState(false);
-  const startX                = useRef(0);
-  const isUnread              = n.is_unread ?? false;
-  const THRESHOLD             = 88; // px left-swipe to confirm dismiss
+  const startX = useRef(0);
+  const isUnread = n.is_unread ?? false;
+  const THRESHOLD = 88; // px left-swipe to confirm dismiss
 
   const onTouchStart = (e: React.TouchEvent) => {
     startX.current = e.touches[0].clientX;
@@ -1046,8 +1046,8 @@ function SwipeNotifCard({
           strokeLinejoin="round"
           style={{ opacity: progress }}
         >
-          <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+          <path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
         </svg>
       </div>
 
@@ -1058,7 +1058,7 @@ function SwipeNotifCard({
         onTouchEnd={onTouchEnd}
         className={`relative flex items-start gap-3 overflow-hidden rounded-[20px] px-4 py-[14px] ${isDeleting ? "opacity-40 pointer-events-none" : ""}`}
         style={{
-          background: "rgba(255,255,255,0.045)",
+          background: "rgba(23, 23, 23, 1)",
           backdropFilter: "blur(28px)",
           WebkitBackdropFilter: "blur(28px)",
           border: "1px solid rgba(255,255,255,0.08)",
@@ -1128,7 +1128,7 @@ function NotificationsView({ notifications, profile }: { notifications: any[], p
 
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
-  const todayItems   = notifications.filter(n => new Date(n.created_at) >= todayStart);
+  const todayItems = notifications.filter(n => new Date(n.created_at) >= todayStart);
   const earlierItems = notifications.filter(n => new Date(n.created_at) < todayStart);
 
   const handleDismiss = async (id: string) => {
@@ -1698,19 +1698,19 @@ function BottomNav({
   currentTab: TabId;
   onSelect: (tab: TabId) => void;
 }) {
-  const SPRING       = { type: "spring" as const, stiffness: 280, damping: 26 };
-  const COMPACT_W    = 46;  // icon(18) + px-3.5(14px × 2)
+  const SPRING = { type: "spring" as const, stiffness: 280, damping: 26 };
+  const COMPACT_W = 46;  // icon(18) + px-3.5(14px × 2)
   const EXPANDED_PAD = 40;  // px-5(20px) × 2 — the indicator's horizontal padding when expanded
-  const ICON_W       = 18;
-  const LABEL_GAP    = 8;
+  const ICON_W = 18;
+  const LABEL_GAP = 8;
 
-  const navRef         = useRef<HTMLDivElement>(null);
-  const tabRefs        = useRef<(HTMLButtonElement | null)[]>([]);
-  const probeRefs      = useRef<(HTMLSpanElement | null)[]>([]);
+  const navRef = useRef<HTMLDivElement>(null);
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const probeRefs = useRef<(HTMLSpanElement | null)[]>([]);
   const expandedWidths = useRef<number[]>(tabs.map(() => 100));
-  const dragState      = useRef<{ startX: number; startIndicatorX: number } | null>(null);
-  const didDrag        = useRef(false);
-  const isDraggingRef  = useRef(false);
+  const dragState = useRef<{ startX: number; startIndicatorX: number } | null>(null);
+  const didDrag = useRef(false);
+  const isDraggingRef = useRef(false);
 
   const indicatorX = useMotionValue(0);
   const indicatorW = useMotionValue(COMPACT_W);
@@ -1737,7 +1737,7 @@ function BottomNav({
       indicatorX.set(btn.offsetLeft + btn.offsetWidth / 2 - w / 2);
       indicatorW.set(w);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Calculate the indicator's FUTURE x position mathematically, without reading
@@ -1747,7 +1747,7 @@ function BottomNav({
   // nav padding: p-2 = 8px  |  flex gap: gap-1 = 4px
   function getFutureX(targetIdx: number): number {
     const NAV_PAD_LEFT = 8;
-    const FLEX_GAP     = 4;
+    const FLEX_GAP = 4;
     return NAV_PAD_LEFT + targetIdx * (COMPACT_W + FLEX_GAP);
   }
 
@@ -1758,7 +1758,7 @@ function BottomNav({
     const x = getFutureX(activeIdx);
     animate(indicatorX, x, SPRING);
     animate(indicatorW, w, SPRING);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeIdx]);
 
   function getTabIdxAt(clientX: number): number {

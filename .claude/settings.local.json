@@ -75,7 +75,10 @@
       "Bash(nvm use:*)",
       "Bash(/opt/homebrew/bin/node --version)",
       "Bash(/usr/local/bin/node --version)",
-      "Bash(grep -r probe /Users/srikanthamsa/dev/logout --include=*.tsx --include=*.ts)"
+      "Bash(grep -r probe /Users/srikanthamsa/dev/logout --include=*.tsx --include=*.ts)",
+      "Bash(npx vercel:*)",
+      "Bash(npm run:*)",
+      "Bash(git checkout:*)"
     ]
   }
 }
