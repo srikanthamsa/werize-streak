@@ -191,10 +191,10 @@ a {
 }
 
 .magic-display {
-  font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
-  font-weight: 900;
+  font-family: var(--font-display), "Montserrat", sans-serif;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: -0.06em;
+  letter-spacing: -0.04em;
   line-height: 0.92;
 }
 

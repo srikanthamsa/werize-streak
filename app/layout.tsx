@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Montserrat } from "next/font/google";
 import Script from "next/script";
 import { InstallPrompt } from "@/components/install-prompt";
 import "./globals.css";
@@ -7,6 +7,12 @@ import "./globals.css";
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-sans",
+});
+
+const montserrat = Montserrat({
+  subsets: ["latin"],
+  weight: ["700"],
+  variable: "--font-display",
 });
 
 
@@ -153,7 +159,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={inter.variable} suppressHydrationWarning>
+      <body className={`${inter.variable} ${montserrat.variable}`} suppressHydrationWarning>
         {children}
         <InstallPrompt />
       </body>
