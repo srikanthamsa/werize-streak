@@ -93,41 +93,31 @@ export async function runAttendanceSync(profileId: string): Promise<SyncState> {
     }
 
     const supabase = getSupabaseAdmin();
-    const encryptionKey = process.env.GREYTHR_PASSWORD_ENCRYPTION_KEY;
     const edgeFunctionUrl = process.env.GREYTHR_EDGE_FUNCTION_URL;
     const edgeFunctionKey = process.env.GREYTHR_EDGE_FUNCTION_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    if (!encryptionKey || !edgeFunctionUrl || !edgeFunctionKey) {
+    if (!edgeFunctionUrl || !edgeFunctionKey) {
       return {
         ok: false,
-        message:
-          "Missing GREYTHR_PASSWORD_ENCRYPTION_KEY, GREYTHR_EDGE_FUNCTION_URL, or GREYTHR_EDGE_FUNCTION_KEY.",
+        message: "Missing GREYTHR_EDGE_FUNCTION_URL or GREYTHR_EDGE_FUNCTION_KEY.",
       };
+    }
+
+    const greythrUsername = process.env.GREYTHR_USERNAME;
+    const greythrPassword = process.env.GREYTHR_PASSWORD;
+
+    if (!greythrUsername || !greythrPassword) {
+      return { ok: false, message: "Missing GREYTHR_USERNAME or GREYTHR_PASSWORD in environment." };
     }
 
     const { data: profileRow, error: profileError } = await supabase
       .from("user_profiles")
-      .select("id, greythr_user_id, greythr_username")
+      .select("id, greythr_user_id")
       .eq("id", profileId)
       .single();
 
     if (profileError || !profileRow) {
       return { ok: false, message: profileError?.message ?? "Profile not found." };
-    }
-
-    const { data: decryptedPassword, error: decryptError } = await supabase.rpc(
-      "decrypt_greythr_password",
-      {
-        p_user_id: profileId,
-        p_encryption_key: encryptionKey,
-      },
-    );
-
-    if (decryptError || typeof decryptedPassword !== "string") {
-      return {
-        ok: false,
-        message: decryptError?.message ?? "Failed to decrypt greytHR password.",
-      };
     }
 
     const edgeResponse = await fetch(edgeFunctionUrl, {
@@ -138,8 +128,8 @@ export async function runAttendanceSync(profileId: string): Promise<SyncState> {
         Authorization: `Bearer ${edgeFunctionKey}`,
       },
       body: JSON.stringify({
-        userName: profileRow.greythr_username,
-        password: decryptedPassword,
+        userName: greythrUsername,
+        password: greythrPassword,
         greythrUserId: profileRow.greythr_user_id,
       }),
       cache: "no-store",
