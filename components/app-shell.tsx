@@ -519,7 +519,7 @@ function TodayView(data: DashboardData) {
       <section className="magic-panel magic-panel-glow w-full max-w-6xl rounded-[32px] p-7 sm:p-10">
         <p className="magic-tech-label mb-4 text-xs text-[#A1A1AA]">CURRENT AVERAGE</p>
         <div className="flex items-end gap-4">
-          <h1 className="magic-display flex items-end gap-2 text-white sm:gap-3">
+          <h1 className="magic-display flex items-end gap-5 text-white sm:gap-7">
             <span className="text-[78px] leading-[0.84] tracking-[-0.07em] sm:text-[112px]">
               {currentAverageParts.hours}
               <span className="pl-1">H</span>
