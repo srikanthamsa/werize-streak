@@ -22,7 +22,7 @@ import {
 import type { DashboardData } from "@/lib/dashboard-data";
 import type { LeaderboardEntry, AttendanceDay, UserProfile } from "@/lib/types";
 
-type TabId = "today" | "insights" | "leaderboard" | "profile" | "notifications";
+type TabId = "today" | "insights" | "profile" | "notifications";
 
 type TabDefinition = {
   id: TabId;
@@ -51,20 +51,6 @@ const tabs: TabDefinition[] = [
     icon: (
       <path
         d="M3 3v18h18m-2-12l-5 5l-4-4l-5 5"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        fill="none"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    ),
-  },
-  {
-    id: "leaderboard",
-    label: "Arena",
-    icon: (
-      <path
-        d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
         stroke="currentColor"
         strokeWidth="1.8"
         fill="none"
@@ -2044,14 +2030,6 @@ export function AppShell(data: DashboardData) {
 
         {currentTab === "today" ? <TodayView {...data} /> : null}
         {currentTab === "insights" ? <InsightsView monthEntries={data.monthEntries} monthSummary={data.monthSummary} /> : null}
-        {currentTab === "leaderboard" ? (
-          <LeaderboardView
-            profile={data.profile}
-            leaderboardEntries={data.leaderboardEntries}
-            leaderboardCards={data.leaderboardCards}
-            monthEntries={data.monthEntries}
-          />
-        ) : null}
         {currentTab === "notifications" ? <NotificationsView notifications={data.notifications} profile={data.profile} /> : null}
         {currentTab === "profile" ? (
           <ProfileView

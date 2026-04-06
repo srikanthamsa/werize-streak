@@ -10,7 +10,6 @@ import {
 } from "@/lib/attendance";
 import type { AttendanceDay, LeaderboardEntry, MonthSummary, StreakData, UserProfile } from "@/lib/types";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { getAuthenticatedUser } from "@/lib/supabase/auth";
 
 export type DashboardData = {
   profile: UserProfile;
@@ -36,10 +35,6 @@ type AttendanceRow = {
   sync_source?: string | null;
 };
 
-type LeaderboardAttendanceRow = AttendanceRow & {
-  user_id: string;
-};
-
 type UserProfileRow = {
   id: string;
   auth_user_id?: string | null;
@@ -53,14 +48,12 @@ type UserProfileRow = {
 };
 
 function toLocalDateKey(date = new Date()) {
-  // Use IST (UTC+5:30) — server runs UTC but users are in India
   const istDate = new Date(date.getTime() + 5.5 * 60 * 60 * 1000);
   const year = istDate.getUTCFullYear();
   const month = `${istDate.getUTCMonth() + 1}`.padStart(2, "0");
   const day = `${istDate.getUTCDate()}`.padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
-
 
 function getStatusForDay(entry: Omit<AttendanceDay, "status">): AttendanceDay["status"] {
   if (entry.syncSource === "manual_leave") {
@@ -74,7 +67,6 @@ function getStatusForDay(entry: Omit<AttendanceDay, "status">): AttendanceDay["s
   const isSameDay = entry.date === toLocalDateKey();
   if (isSameDay) return "in_progress";
 
-  // Past days below half-day threshold are LOP regardless of monthly average
   if (calculateWorkedMinutes(entry.swipes) < HALF_DAY_MINUTES) {
     return "lop";
   }
@@ -97,76 +89,6 @@ function normalizeAttendanceRows(rows: AttendanceRow[]) {
       status: getStatusForDay(entry),
     };
   }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-}
-
-function average(values: number[]) {
-  if (!values.length) {
-    return 0;
-  }
-
-  return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
-}
-
-function toTimeKey(totalMinutes: number) {
-  const hours = `${Math.floor(totalMinutes / 60)}`.padStart(2, "0");
-  const minutes = `${totalMinutes % 60}`.padStart(2, "0");
-  return `${hours}:${minutes}`;
-}
-
-function getSwipeMinutes(value: string) {
-  const date = new Date(value);
-  return date.getHours() * 60 + date.getMinutes();
-}
-
-function buildLeaderboardEntries(
-  profileRows: UserProfileRow[],
-  attendanceRows: LeaderboardAttendanceRow[],
-) {
-  const attendanceByUser = new Map<string, AttendanceRow[]>();
-
-  for (const row of attendanceRows) {
-    const rows = attendanceByUser.get(row.user_id) ?? [];
-    rows.push({
-      attendance_date: row.attendance_date,
-      swipe_times: row.swipe_times,
-      sync_source: row.sync_source,
-    });
-    attendanceByUser.set(row.user_id, rows);
-  }
-
-  return profileRows
-    .filter((row) => row.leaderboard_opt_in)
-    .map((row) => {
-      const normalizedEntries = normalizeAttendanceRows(attendanceByUser.get(row.id) ?? []);
-      const activeEntries = normalizedEntries.filter((entry) => 
-        entry.swipes.length > 0 && entry.syncSource !== "manual_leave"
-      );
-      const totalMinutes = activeEntries.reduce((sum, entry) => sum + calculateWorkedMinutes(entry.swipes), 0);
-      const averageDailyMinutes = average(activeEntries.map((entry) => calculateWorkedMinutes(entry.swipes)));
-      const averageArrivalTime = toTimeKey(
-        average(activeEntries.map((entry) => getSwipeMinutes(entry.swipes[0] as string))),
-      );
-      const averageDepartureTime = toTimeKey(
-        average(activeEntries.map((entry) => getSwipeMinutes(entry.swipes.at(-1) as string))),
-      );
-      const averageSwipesPerDay = activeEntries.length
-        ? Number((activeEntries.reduce((sum, entry) => sum + entry.swipes.length, 0) / activeEntries.length).toFixed(1))
-        : 0;
-
-      return {
-        id: row.id,
-        alias: row.full_name,
-        totalMinutes,
-        averageDailyMinutes,
-        currentStreak: calculateStreakData(normalizedEntries).currentStreak,
-        averageArrivalTime,
-        averageDepartureTime,
-        averageSwipesPerDay,
-        public: true,
-      } satisfies LeaderboardEntry;
-    })
-    .filter((entry) => entry.totalMinutes > 0)
-    .sort((a, b) => b.totalMinutes - a.totalMinutes);
 }
 
 function createEmptyDashboardData({
@@ -237,6 +159,7 @@ function getWorkingDaysInMonth(date = new Date()) {
 export async function getDashboardData(): Promise<DashboardData> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const profileId = process.env.STREAK_PROFILE_ID;
 
   if (!supabaseUrl || !serviceRoleKey) {
     return createEmptyDashboardData({
@@ -245,45 +168,35 @@ export async function getDashboardData(): Promise<DashboardData> {
     });
   }
 
-  const supabase = getSupabaseAdmin();
-  const authUser = await getAuthenticatedUser();
-
-  if (!authUser) {
+  if (!profileId) {
     return createEmptyDashboardData({
       isLive: false,
-      syncStatus: "Sign in to Streak to connect your work account.",
+      syncStatus: "Set STREAK_PROFILE_ID in your .env.local to connect your profile.",
     });
   }
+
+  const supabase = getSupabaseAdmin();
 
   const { data: profileRows, error: profileError } = await supabase
     .from("user_profiles")
     .select("id, auth_user_id, email, full_name, role, team, leaderboard_opt_in, greythr_user_id, greythr_username")
-    .eq("auth_user_id", authUser.id)
+    .eq("id", profileId)
     .limit(1);
 
   if (profileError || !profileRows?.length) {
     return createEmptyDashboardData({
       isLive: false,
       syncUserId: null,
-      profile: {
-        id: "",
-        fullName: authUser.user_metadata.full_name ?? authUser.email?.split("@")[0] ?? "You",
-        role: "Team Member",
-        team: "Finish setup",
-        leaderboardOptIn: true,
-        firstSwipeAt: null,
-      },
-      syncStatus: profileError?.message ?? "Finish setup to connect greytHR and go live.",
+      syncStatus: profileError?.message ?? "Profile not found. Check STREAK_PROFILE_ID in .env.local.",
     });
   }
 
   const profileRow = profileRows[0] as UserProfileRow;
-  
+
   const now = new Date();
   const istNow = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
   const startOfMonth = `${istNow.getUTCFullYear()}-${String(istNow.getUTCMonth() + 1).padStart(2, "0")}-01`;
 
-  // Fetch 90 days back so streaks carry across month boundaries
   const ist90DaysAgo = new Date(istNow.getTime() - 90 * 24 * 60 * 60 * 1000);
   const streakStartDate = `${ist90DaysAgo.getUTCFullYear()}-${String(ist90DaysAgo.getUTCMonth() + 1).padStart(2, "0")}-${String(ist90DaysAgo.getUTCDate()).padStart(2, "0")}`;
 
@@ -310,40 +223,8 @@ export async function getDashboardData(): Promise<DashboardData> {
     throw new Error(`Failed to fetch last sync state: ${lastSyncError.message}`);
   }
 
-  const { data: leaderboardProfileRows, error: leaderboardProfileError } = await supabase
-    .from("user_profiles")
-    .select("id, full_name, role, team, leaderboard_opt_in")
-    .eq("leaderboard_opt_in", true);
-
-  if (leaderboardProfileError) {
-    throw new Error(`Failed to fetch leaderboard profiles: ${leaderboardProfileError.message}`);
-  }
-
-  const leaderboardUserIds = (leaderboardProfileRows ?? []).map((row) => row.id);
-  let leaderboardEntries: LeaderboardEntry[] = [];
-
-  if (leaderboardUserIds.length) {
-    const { data: leaderboardAttendanceRows, error: leaderboardAttendanceError } = await supabase
-      .from("attendance_logs")
-      .select("user_id, attendance_date, swipe_times, sync_source")
-      .in("user_id", leaderboardUserIds)
-      .gte("attendance_date", startOfMonth);
-
-    if (leaderboardAttendanceError) {
-      throw new Error(`Failed to fetch leaderboard attendance: ${leaderboardAttendanceError.message}`);
-    }
-
-    leaderboardEntries = buildLeaderboardEntries(
-      (leaderboardProfileRows ?? []) as UserProfileRow[],
-      (leaderboardAttendanceRows ?? []) as LeaderboardAttendanceRow[],
-    );
-  }
-
-  // All entries going back 90 days — used for streak (carries across month boundaries)
   const allNormalizedEntries = normalizeAttendanceRows((attendanceRows ?? []) as AttendanceRow[]);
   const currentDateKey = toLocalDateKey();
-
-  // Current-month slice only — used for month summary and day display
   const normalizedEntries = allNormalizedEntries.filter((entry) => entry.date >= startOfMonth);
 
   const todayEntryLive = normalizedEntries.find((entry) => entry.date === currentDateKey) ?? {
@@ -358,7 +239,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     email: profileRow.email ?? null,
     role: profileRow.role ?? "Team Member",
     team: profileRow.team,
-    leaderboardOptIn: profileRow.leaderboard_opt_in,
+    leaderboardOptIn: false,
     firstSwipeAt: todayEntryLive.swipes[0] ?? null,
     greythrUsername: profileRow.greythr_username ?? null,
   };
@@ -388,16 +269,16 @@ export async function getDashboardData(): Promise<DashboardData> {
     profile: derivedProfile,
     todayEntry: todayEntryLive,
     monthEntries: normalizedEntries,
-    leaderboardEntries,
+    leaderboardEntries: [],
     monthSummary: summary,
     targetExitTime: isWeekend(currentDateKey) ? null : calculateTargetExitTime(todayEntryLive.swipes),
     workedMinutes: calculateWorkedMinutes(todayEntryLive.swipes),
     progressPercent: getProgressPercent(todayEntryLive),
-    leaderboardCards: getLeaderboardCards(leaderboardEntries),
+    leaderboardCards: getLeaderboardCards([]),
     isLive: true,
     syncUserId: profileRow.id,
     syncStatus: normalizedEntries.length
-      ? "Live biometric attendance synced from greytHR into Supabase."
+      ? "Live biometric attendance synced from greytHR."
       : "Connection is live. Run your first sync to pull biometric swipes.",
     lastSyncedAt: lastSyncRow?.synced_at ?? null,
     streak,

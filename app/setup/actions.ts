@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getAuthenticatedUser } from "@/lib/supabase/auth";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { runAttendanceSync, type SyncState } from "@/app/actions";
 
@@ -15,12 +14,11 @@ export async function saveCredentialsAction(
   formData: FormData,
 ): Promise<SetupState> {
   try {
-    const authUser = await getAuthenticatedUser();
-
-    if (!authUser) {
+    const authUserId = process.env.STREAK_AUTH_USER_ID;
+    if (!authUserId) {
       return {
         ok: false,
-        message: "Sign in first before saving your work account.",
+        message: "Set STREAK_AUTH_USER_ID in your .env.local first.",
       };
     }
 
@@ -37,7 +35,6 @@ export async function saveCredentialsAction(
     const role = String(formData.get("role") ?? "").trim();
     const greythrUsername = String(formData.get("greythrUsername") ?? "").trim();
     const greythrPassword = String(formData.get("greythrPassword") ?? "");
-    const leaderboardOptIn = formData.get("leaderboardOptIn") === "on";
 
     if (!fullName || !team || !greythrUsername || !greythrPassword) {
       return {
@@ -48,8 +45,8 @@ export async function saveCredentialsAction(
 
     const supabase = getSupabaseAdmin();
     const { data, error } = await supabase.rpc("upsert_user_profile_credentials", {
-      p_auth_user_id: authUser.id,
-      p_email: authUser.email ?? "",
+      p_auth_user_id: authUserId,
+      p_email: "",
       p_full_name: fullName,
       p_team: team,
       p_role: role || null,
@@ -57,7 +54,7 @@ export async function saveCredentialsAction(
       p_greythr_username: greythrUsername,
       p_greythr_password: greythrPassword,
       p_encryption_key: encryptionKey,
-      p_leaderboard_opt_in: leaderboardOptIn,
+      p_leaderboard_opt_in: false,
     });
 
     if (error || typeof data !== "string") {
