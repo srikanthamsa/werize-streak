@@ -432,8 +432,8 @@ function TodayView(data: DashboardData) {
   const [showExitGuide, setShowExitGuide] = useState(false);
   const minutesRemaining = getMinutesRemaining(data.todayEntry.swipes);
   const status = getTodayStatus(minutesRemaining, data.todayEntry.status);
-  const currentAverageMinutes = data.monthSummary.workingDaysElapsed > 0
-    ? Math.round(data.monthSummary.actualMinutesToDate / data.monthSummary.workingDaysElapsed)
+  const currentAverageMinutes = data.monthSummary.completedDaysCount > 0
+    ? Math.round(data.monthSummary.completedDaysMinutes / data.monthSummary.completedDaysCount)
     : 0;
   const currentAverage = formatMinutes(currentAverageMinutes);
   const totalMonthlyMinutes = data.monthSummary.totalWorkingDays * DAILY_TARGET_MINUTES;

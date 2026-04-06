@@ -39,6 +39,9 @@ export type MonthSummary = {
   actualMinutesToDate: number;
   balanceMinutes: number;
   recommendedDailyAverageMinutes: number;
+  // Completed days only — excludes today while in_progress, used for the average display
+  completedDaysCount: number;
+  completedDaysMinutes: number;
 };
 
 export type StreakData = {

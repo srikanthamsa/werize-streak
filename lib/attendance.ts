@@ -90,11 +90,19 @@ export function calculateMonthSummary(
   const leavesCount = entries.filter((entry) => entry.status === "leave").length;
   const effectiveTotalWorkingDays = Math.max(0, totalWorkingDays - leavesCount);
 
-  const completedOrInProgress = entries.filter((entry) => entry.status !== "leave" && entry.swipes.length > 0);
-  const actualMinutesToDate = completedOrInProgress.reduce((total, entry) => {
+  // Completed days only (done/lop/missing_swipe) — used for the average display
+  const completedDays = entries.filter((entry) =>
+    entry.status === "done" || entry.status === "lop" || entry.status === "missing_swipe"
+  );
+  const completedDaysCount = completedDays.length;
+  const completedDaysMinutes = completedDays.reduce((total, entry) => {
     return total + calculateWorkedMinutes(entry.swipes);
   }, 0);
-  const workingDaysElapsed = completedOrInProgress.length;
+
+  // For the time bank balance, also fold in today's partial minutes if in_progress
+  const todayInProgress = entries.find((entry) => entry.status === "in_progress");
+  const actualMinutesToDate = completedDaysMinutes + (todayInProgress ? calculateWorkedMinutes(todayInProgress.swipes) : 0);
+  const workingDaysElapsed = completedDaysCount + (todayInProgress ? 1 : 0);
   const targetMinutesToDate = workingDaysElapsed * DAILY_TARGET_MINUTES;
   const balanceMinutes = actualMinutesToDate - targetMinutesToDate;
   const remainingDays = Math.max(0, effectiveTotalWorkingDays - workingDaysElapsed);
@@ -111,6 +119,8 @@ export function calculateMonthSummary(
     actualMinutesToDate,
     balanceMinutes,
     recommendedDailyAverageMinutes,
+    completedDaysCount,
+    completedDaysMinutes,
   } satisfies MonthSummary;
 }
 
