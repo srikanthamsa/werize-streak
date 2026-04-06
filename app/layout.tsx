@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Barlow_Condensed } from "next/font/google";
 import Script from "next/script";
 import { InstallPrompt } from "@/components/install-prompt";
 import "./globals.css";
@@ -7,6 +7,12 @@ import "./globals.css";
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-sans",
+});
+
+const barlowCondensed = Barlow_Condensed({
+  subsets: ["latin"],
+  weight: ["800", "900"],
+  variable: "--font-display",
 });
 
 export const metadata: Metadata = {
@@ -149,7 +155,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={inter.variable} suppressHydrationWarning>
+      <body className={`${inter.variable} ${barlowCondensed.variable}`} suppressHydrationWarning>
         {children}
         <InstallPrompt />
       </body>
