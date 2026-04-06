@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Barlow_Condensed } from "next/font/google";
+import { Inter } from "next/font/google";
 import Script from "next/script";
 import { InstallPrompt } from "@/components/install-prompt";
 import "./globals.css";
@@ -9,11 +9,6 @@ const inter = Inter({
   variable: "--font-sans",
 });
 
-const barlowCondensed = Barlow_Condensed({
-  subsets: ["latin"],
-  weight: ["800", "900"],
-  variable: "--font-display",
-});
 
 export const metadata: Metadata = {
   title: "Streak",
@@ -42,6 +37,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap" rel="stylesheet" />
         {/* apple-touch-startup-image: native iOS splash shown BEFORE the WebView starts.
             Covers all common iPhone sizes (portrait). Physical px = CSS px × DPR. */}
         {/* iPhone SE 2nd/3rd gen — 375×667 @2x */}
@@ -155,7 +153,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${inter.variable} ${barlowCondensed.variable}`} suppressHydrationWarning>
+      <body className={inter.variable} suppressHydrationWarning>
         {children}
         <InstallPrompt />
       </body>

@@ -191,8 +191,8 @@ a {
 }
 
 .magic-display {
-  font-family: var(--font-display), "Barlow Condensed", sans-serif;
-  font-weight: 900;
+  font-family: "Google Sans", sans-serif;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: -0.03em;
   line-height: 0.92;
